@@ -1,1 +1,0 @@
-print("Chalmers test file")
