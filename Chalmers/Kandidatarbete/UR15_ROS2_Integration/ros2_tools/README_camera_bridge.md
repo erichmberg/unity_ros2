@@ -5,12 +5,12 @@ This bridge exposes a ROS2 camera topic over HTTP so Unity can consume it.
 ## What it does
 - Subscribes to `sensor_msgs/Image`
 - Encodes latest frame as JPEG
-- Serves latest frame at `http://<host>:8080/frame.jpg`
+- Serves latest frame at `http://<host>:18081/frame.jpg`
 
 ## Run
 
 ```bash
-python3 camera_http_bridge.py --topic /camera/color/image_raw --port 8080
+python3 camera_http_bridge.py --topic /camera/color/image_raw --host 192.168.50.165 --port 18081
 ```
 
 ## Dependencies
@@ -30,7 +30,7 @@ sudo apt install ros-$ROS_DISTRO-cv-bridge python3-opencv
 Use `Assets/Scripts/HttpCameraFeed.cs` in the Unity project and point it to:
 
 ```text
-http://<ros2-machine-ip>:8080/frame.jpg
+http://192.168.50.165:18081/frame.jpg
 ```
 
 Set either:

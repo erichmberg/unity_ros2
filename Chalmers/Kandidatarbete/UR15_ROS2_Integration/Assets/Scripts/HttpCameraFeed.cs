@@ -11,7 +11,7 @@ using UnityEngine.UI;
 public class HttpCameraFeed : MonoBehaviour
 {
     [Header("HTTP Camera Source")]
-    public string imageUrl = "http://127.0.0.1:8080/frame.jpg";
+    public string imageUrl = "http://192.168.50.165:18081/frame.jpg";
     [Range(1f, 60f)] public float fps = 15f;
     public float requestTimeoutSeconds = 2f;
 

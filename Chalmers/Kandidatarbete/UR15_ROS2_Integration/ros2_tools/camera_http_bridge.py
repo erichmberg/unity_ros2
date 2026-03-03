@@ -7,7 +7,7 @@ Subscribes to sensor_msgs/Image and serves latest frame on:
   - /healthz
 
 Example:
-  python3 camera_http_bridge.py --topic /camera/color/image_raw --port 8080
+  python3 camera_http_bridge.py --topic /camera/color/image_raw --host 192.168.50.165 --port 18081
 """
 
 import argparse
@@ -86,7 +86,7 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--topic", default="/camera/image_raw")
     p.add_argument("--host", default="0.0.0.0")
-    p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--port", type=int, default=18081)
     p.add_argument("--jpeg-quality", type=int, default=80)
     return p.parse_args()
 
