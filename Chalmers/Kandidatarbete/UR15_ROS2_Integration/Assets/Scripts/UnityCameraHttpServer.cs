@@ -39,7 +39,7 @@ public class UnityCameraHttpServer : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoCreate()
     {
-        if (FindObjectOfType<UnityCameraHttpServer>() != null)
+        if (FindAnyObjectByType<UnityCameraHttpServer>() != null)
             return;
 
         var go = new GameObject("UnityCameraHttpServer_Auto");
