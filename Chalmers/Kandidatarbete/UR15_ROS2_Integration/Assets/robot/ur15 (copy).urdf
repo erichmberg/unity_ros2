@@ -1,0 +1,199 @@
+<?xml version="1.0"?>
+<robot name="ur15_unity_clean">
+
+  <!-- ===== Materials ===== -->
+  <material name="ur_black">
+    <color rgba="0.08 0.08 0.08 1.0"/>
+  </material>
+
+  <material name="ur_dark_gray">
+    <color rgba="0.20 0.20 0.20 1.0"/>
+  </material>
+
+  <material name="ur_light_gray">
+    <color rgba="0.82 0.82 0.83 1.0"/>
+  </material>
+
+  <!-- Official-style UR blue -->
+  <material name="ur_blue">
+    <color rgba="0.0 0.45 0.74 1.0"/>
+  </material>
+
+  <link name="world"/>
+  <link name="base_link"/>
+
+  <!-- ================= BASE ================= -->
+  <link name="base_link_inertia">
+    <visual>
+      <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/base.stl"/>
+      </geometry>
+      <material name="ur_black"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/base.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= SHOULDER (BLUE) ================= -->
+  <link name="shoulder_link">
+    <visual>
+      <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/shoulder.stl"/>
+      </geometry>
+      <material name="ur_blue"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/shoulder.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= UPPER ARM (SILVER) ================= -->
+  <link name="upper_arm_link">
+    <visual>
+      <origin rpy="1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0.1"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/upperarm.stl"/>
+      </geometry>
+      <material name="ur_light_gray"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0.1"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/upperarm.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= ELBOW / FOREARM BASE (BLUE) ================= -->
+  <link name="forearm_link">
+    <visual>
+      <origin rpy="1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0.125"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/forearm.stl"/>
+      </geometry>
+      <material name="ur_blue"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0.125"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/forearm.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= WRIST 1 (BLUE) ================= -->
+  <link name="wrist_1_link">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0 -0.0502"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/wrist1.stl"/>
+      </geometry>
+      <material name="ur_blue"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0 -0.0502"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/wrist1.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= WRIST 2 (DARK GRAY) ================= -->
+  <link name="wrist_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 -0.064"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/wrist2.stl"/>
+      </geometry>
+      <material name="ur_dark_gray"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 -0.064"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/wrist2.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= WRIST 3 (DARK GRAY) ================= -->
+  <link name="wrist_3_link">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0 -0.0715"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/wrist3.stl"/>
+      </geometry>
+      <material name="ur_dark_gray"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0 -0.0715"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/ur15/collision/wrist3.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================= JOINTS ================= -->
+
+  <joint name="base_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+  </joint>
+
+  <joint name="base_link-base_link_inertia" type="fixed">
+    <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="base_link_inertia"/>
+  </joint>
+
+  <joint name="shoulder_pan_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.2186"/>
+    <parent link="base_link_inertia"/>
+    <child link="shoulder_link"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="shoulder_lift_joint" type="revolute">
+    <origin rpy="1.570796327 0 0" xyz="0 0 0"/>
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="elbow_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="-0.6475 0 0"/>
+    <parent link="upper_arm_link"/>
+    <child link="forearm_link"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="wrist_1_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="-0.5164 0 0.1824"/>
+    <parent link="forearm_link"/>
+    <child link="wrist_1_link"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="wrist_2_joint" type="revolute">
+    <origin rpy="1.570796327 0 0" xyz="0 -0.1361 0"/>
+    <parent link="wrist_1_link"/>
+    <child link="wrist_2_link"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="wrist_3_joint" type="revolute">
+    <origin rpy="1.570796326589793 3.141592653589793 3.141592653589793" xyz="0 0.1434 0"/>
+    <parent link="wrist_2_link"/>
+    <child link="wrist_3_link"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+</robot>
