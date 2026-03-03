@@ -223,14 +223,14 @@
 
   <link name="left_finger_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.095 -0.03 0.047" rpy="0 0 -1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_light_gray"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.095 -0.03 0.047" rpy="0 0 -1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -247,14 +247,14 @@
 
   <link name="right_finger_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.095 0.03 -0.047" rpy="0 3.14159265359 -1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_light_gray"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.095 0.03 -0.047" rpy="0 3.14159265359 -1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -262,7 +262,7 @@
   </link>
 
   <joint name="right_finger_joint" type="revolute">
-    <origin xyz="0.012 -0.03 0.00" rpy="0 0 3.14159265359"/>
+    <origin xyz="0.012 -0.03 0.00" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="right_finger_link"/>
     <axis xyz="0 0 1"/>
