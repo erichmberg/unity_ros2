@@ -9,7 +9,7 @@ using Unity.Robotics.UrdfImporter;
 public class JointTrajectoryToUr15 : MonoBehaviour
 {
     public string topicName = "/unity/ur15_joint_trajectory";
-    public float maxDegreesPerSecond = 30f;
+    public float maxDegreesPerSecond = 120f;
 
     readonly Dictionary<string, ArticulationBody> jointMap = new();
     readonly Dictionary<string, float> cmdDeg = new();

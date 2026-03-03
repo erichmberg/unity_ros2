@@ -28,6 +28,7 @@ public class UnityCameraHttpServer : MonoBehaviour
 
     private static byte[] s_latestJpeg;
     private static readonly object s_frameLock = new object();
+    private static int s_streamFps = 10;
 
     private Camera _targetCamera;
     private RenderTexture _rt;
@@ -61,8 +62,9 @@ public class UnityCameraHttpServer : MonoBehaviour
         _rt = new RenderTexture(width, height, 16, RenderTextureFormat.ARGB32);
         _readTex = new Texture2D(width, height, TextureFormat.RGB24, false);
 
+        s_streamFps = Mathf.Max(1, fps);
         StartHttpServer();
-        InvokeRepeating(nameof(CaptureFrame), 0.1f, 1f / Mathf.Max(1, fps));
+        InvokeRepeating(nameof(CaptureFrame), 0.05f, 1f / Mathf.Max(1, fps));
 
         Debug.Log($"UnityCameraHttpServer running: http://0.0.0.0:{port}/frame.jpg");
     }
@@ -206,7 +208,7 @@ public class UnityCameraHttpServer : MonoBehaviour
                         ctx.Response.OutputStream.Flush();
                     }
 
-                    Thread.Sleep(1000 / 10); // 10 fps stream pacing
+                    Thread.Sleep(Mathf.Max(1, 1000 / Mathf.Max(1, s_streamFps))); // stream pacing tied to configured fps
                 }
             }
             catch
