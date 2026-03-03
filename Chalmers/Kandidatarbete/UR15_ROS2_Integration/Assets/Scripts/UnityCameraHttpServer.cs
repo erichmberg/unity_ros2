@@ -9,8 +9,9 @@ using UnityEngine;
 /// No manual GameObject binding required.
 ///
 /// Endpoints:
-///   GET /frame.jpg  -> latest JPEG frame
-///   GET /healthz    -> ok
+///   GET /frame.jpg    -> latest JPEG frame (single snapshot)
+///   GET /stream.mjpg  -> live MJPEG stream
+///   GET /healthz      -> ok
 ///
 /// Default URL: http://<host>:18082/frame.jpg
 /// </summary>
@@ -169,39 +170,92 @@ public class UnityCameraHttpServer : MonoBehaviour
             return;
         }
 
-        if (!path.Equals("/frame.jpg", StringComparison.OrdinalIgnoreCase))
+        if (path.Equals("/stream.mjpg", StringComparison.OrdinalIgnoreCase))
         {
-            byte[] notFound = Encoding.UTF8.GetBytes("not found");
-            ctx.Response.StatusCode = 404;
-            ctx.Response.ContentType = "text/plain";
-            ctx.Response.ContentLength64 = notFound.Length;
-            ctx.Response.OutputStream.Write(notFound, 0, notFound.Length);
+            const string boundary = "frame";
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = $"multipart/x-mixed-replace; boundary={boundary}";
+            ctx.Response.SendChunked = true;
+            ctx.Response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.Response.AddHeader("Pragma", "no-cache");
+            ctx.Response.AddHeader("Expires", "0");
+            ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
+
+            try
+            {
+                while (true)
+                {
+                    byte[] frame;
+                    lock (s_frameLock)
+                    {
+                        frame = s_latestJpeg;
+                    }
+
+                    if (frame != null)
+                    {
+                        string header =
+                            $"--{boundary}\r\n" +
+                            "Content-Type: image/jpeg\r\n" +
+                            $"Content-Length: {frame.Length}\r\n\r\n";
+
+                        byte[] headerBytes = Encoding.ASCII.GetBytes(header);
+                        ctx.Response.OutputStream.Write(headerBytes, 0, headerBytes.Length);
+                        ctx.Response.OutputStream.Write(frame, 0, frame.Length);
+                        byte[] newline = Encoding.ASCII.GetBytes("\r\n");
+                        ctx.Response.OutputStream.Write(newline, 0, newline.Length);
+                        ctx.Response.OutputStream.Flush();
+                    }
+
+                    Thread.Sleep(1000 / 10); // 10 fps stream pacing
+                }
+            }
+            catch
+            {
+                // Client disconnected; safely end response.
+            }
+            finally
+            {
+                try { ctx.Response.Close(); } catch { }
+            }
+            return;
+        }
+
+        if (path.Equals("/frame.jpg", StringComparison.OrdinalIgnoreCase))
+        {
+            byte[] frame;
+            lock (s_frameLock)
+            {
+                frame = s_latestJpeg;
+            }
+
+            if (frame == null)
+            {
+                byte[] noFrame = Encoding.UTF8.GetBytes("no frame yet");
+                ctx.Response.StatusCode = 503;
+                ctx.Response.ContentType = "text/plain";
+                ctx.Response.ContentLength64 = noFrame.Length;
+                ctx.Response.OutputStream.Write(noFrame, 0, noFrame.Length);
+                ctx.Response.Close();
+                return;
+            }
+
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "image/jpeg";
+            ctx.Response.ContentLength64 = frame.Length;
+            ctx.Response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.Response.AddHeader("Pragma", "no-cache");
+            ctx.Response.AddHeader("Expires", "0");
+            ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
+            ctx.Response.OutputStream.Write(frame, 0, frame.Length);
             ctx.Response.Close();
             return;
         }
 
-        byte[] frame;
-        lock (s_frameLock)
-        {
-            frame = s_latestJpeg;
-        }
-
-        if (frame == null)
-        {
-            byte[] noFrame = Encoding.UTF8.GetBytes("no frame yet");
-            ctx.Response.StatusCode = 503;
-            ctx.Response.ContentType = "text/plain";
-            ctx.Response.ContentLength64 = noFrame.Length;
-            ctx.Response.OutputStream.Write(noFrame, 0, noFrame.Length);
-            ctx.Response.Close();
-            return;
-        }
-
-        ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = "image/jpeg";
-        ctx.Response.ContentLength64 = frame.Length;
-        ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
-        ctx.Response.OutputStream.Write(frame, 0, frame.Length);
+        byte[] notFound = Encoding.UTF8.GetBytes("not found");
+        ctx.Response.StatusCode = 404;
+        ctx.Response.ContentType = "text/plain";
+        ctx.Response.ContentLength64 = notFound.Length;
+        ctx.Response.OutputStream.Write(notFound, 0, notFound.Length);
         ctx.Response.Close();
     }
 }

@@ -3,7 +3,8 @@
 `UnityCameraHttpServer.cs` auto-creates itself at runtime and streams `MainCamera`.
 
 ## Endpoints
-- `http://<unity-host-ip>:18082/frame.jpg`
+- `http://<unity-host-ip>:18082/frame.jpg` (single snapshot)
+- `http://<unity-host-ip>:18082/stream.mjpg` (live stream)
 - `http://<unity-host-ip>:18082/healthz`
 
 ## How to use
