@@ -198,27 +198,6 @@
 
   <!-- ================= TOOLING: 2-FINGER GRIPPER + CAMERA ================= -->
 
-  <link name="tool0">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <cylinder length="0.08" radius="0.02"/>
-      </geometry>
-      <material name="ur_dark_gray"/>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <cylinder length="0.08" radius="0.02"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <joint name="tool0_fixed" type="fixed">
-    <origin xyz="0 0 0.12" rpy="0 0 0"/>
-    <parent link="wrist_3_link"/>
-    <child link="tool0"/>
-  </joint>
 
   <link name="gripper_base_link">
     <visual>
@@ -237,14 +216,14 @@
   </link>
 
   <joint name="gripper_base_fixed" type="fixed">
-    <origin xyz="0 0 0.085" rpy="0 1.57079632679 0"/>
-    <parent link="tool0"/>
+    <origin xyz="0 0 0.205" rpy="0 1.57079632679 1.57079632679"/>
+    <parent link="wrist_3_link"/>
     <child link="gripper_base_link"/>
   </joint>
 
   <link name="left_finger_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -259,7 +238,7 @@
   </link>
 
   <joint name="left_finger_joint" type="revolute">
-    <origin xyz="0.01 0.032 0.03" rpy="0 0 0"/>
+    <origin xyz="0.01 0.032 0.03" rpy="0 0 1.57079632679"/>
     <parent link="gripper_base_link"/>
     <child link="left_finger_link"/>
     <axis xyz="0 0 1"/>
@@ -268,7 +247,7 @@
 
   <link name="right_finger_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
+      <origin xyz="0 0 0" rpy="0 0 4.71238898038"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -283,7 +262,7 @@
   </link>
 
   <joint name="right_finger_joint" type="revolute">
-    <origin xyz="0.01 -0.032 0.03" rpy="0 0 0"/>
+    <origin xyz="0.01 -0.032 0.03" rpy="0 0 1.57079632679"/>
     <parent link="gripper_base_link"/>
     <child link="right_finger_link"/>
     <axis xyz="0 0 1"/>
