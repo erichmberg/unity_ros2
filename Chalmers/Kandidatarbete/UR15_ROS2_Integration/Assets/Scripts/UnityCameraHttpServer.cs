@@ -11,6 +11,7 @@ using UnityEngine;
 /// Endpoints:
 ///   GET /frame.jpg    -> latest JPEG frame (single snapshot)
 ///   GET /stream.mjpg  -> live MJPEG stream
+///   GET /pose.json    -> current end-effector XYZ
 ///   GET /healthz      -> ok
 ///
 /// Default URL: http://<host>:18082/frame.jpg
@@ -26,11 +27,19 @@ public class UnityCameraHttpServer : MonoBehaviour
     public int width = 640;
     public int height = 360;
 
+    [Header("Pose Overlay")]
+    public bool overlayPoseText = true;
+    public string endEffectorNameContains = "wrist_3";
+
     private static byte[] s_latestJpeg;
     private static readonly object s_frameLock = new object();
     private static int s_streamFps = 10;
+    private static Vector3 s_endEffectorWorldPos;
 
     private Camera _targetCamera;
+    private Transform _endEffector;
+    private Transform _overlayTransform;
+    private TextMesh _overlayText;
     private RenderTexture _rt;
     private Texture2D _readTex;
 
@@ -62,6 +71,10 @@ public class UnityCameraHttpServer : MonoBehaviour
         _rt = new RenderTexture(width, height, 16, RenderTextureFormat.ARGB32);
         _readTex = new Texture2D(width, height, TextureFormat.RGB24, false);
 
+        _endEffector = FindEndEffectorTransform();
+        if (overlayPoseText)
+            CreateOverlayText();
+
         s_streamFps = Mathf.Max(1, fps);
         StartHttpServer();
         InvokeRepeating(nameof(CaptureFrame), 0.05f, 1f / Mathf.Max(1, fps));
@@ -76,6 +89,64 @@ public class UnityCameraHttpServer : MonoBehaviour
 
         if (_rt != null) _rt.Release();
         if (_readTex != null) Destroy(_readTex);
+    }
+
+    void Update()
+    {
+        if (_endEffector != null)
+            s_endEffectorWorldPos = _endEffector.position;
+
+        if (overlayPoseText && _overlayText != null && _targetCamera != null)
+        {
+            Vector3 p = s_endEffectorWorldPos;
+            _overlayText.text = $"X: {p.x:F3}  Y: {p.y:F3}  Z: {p.z:F3}";
+
+            // Place overlay near top-left of camera view.
+            Vector3 world = _targetCamera.ViewportToWorldPoint(new Vector3(0.05f, 0.95f, 1.0f));
+            _overlayTransform.position = world;
+            _overlayTransform.rotation = _targetCamera.transform.rotation;
+        }
+    }
+
+    Transform FindEndEffectorTransform()
+    {
+        string needle = (endEffectorNameContains ?? string.Empty).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(needle))
+            needle = "wrist_3";
+
+        foreach (Transform t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+        {
+            if (t.name.ToLowerInvariant().Contains(needle))
+            {
+                Debug.Log($"UnityCameraHttpServer: End-effector target='{t.name}'");
+                return t;
+            }
+        }
+
+        Debug.LogWarning($"UnityCameraHttpServer: Could not find end effector containing '{needle}'. Overlay will show last known values.");
+        return null;
+    }
+
+    void CreateOverlayText()
+    {
+        var go = new GameObject("UnityPoseOverlayText");
+        go.transform.SetParent(_targetCamera.transform, false);
+        _overlayTransform = go.transform;
+
+        _overlayText = go.AddComponent<TextMesh>();
+        _overlayText.fontSize = 40;
+        _overlayText.characterSize = 0.02f;
+        _overlayText.anchor = TextAnchor.UpperLeft;
+        _overlayText.alignment = TextAlignment.Left;
+        _overlayText.color = Color.white;
+        _overlayText.text = "X: 0.000  Y: 0.000  Z: 0.000";
+
+        var mr = go.GetComponent<MeshRenderer>();
+        if (mr != null)
+        {
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+        }
     }
 
     void CaptureFrame()
@@ -168,6 +239,20 @@ public class UnityCameraHttpServer : MonoBehaviour
             ctx.Response.ContentType = "text/plain";
             ctx.Response.ContentLength64 = ok.Length;
             ctx.Response.OutputStream.Write(ok, 0, ok.Length);
+            ctx.Response.Close();
+            return;
+        }
+
+        if (path.Equals("/pose.json", StringComparison.OrdinalIgnoreCase))
+        {
+            Vector3 p = s_endEffectorWorldPos;
+            string json = $"{{\"x\":{p.x:F6},\"y\":{p.y:F6},\"z\":{p.z:F6}}}";
+            byte[] payload = Encoding.UTF8.GetBytes(json);
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "application/json";
+            ctx.Response.ContentLength64 = payload.Length;
+            ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
+            ctx.Response.OutputStream.Write(payload, 0, payload.Length);
             ctx.Response.Close();
             return;
         }
