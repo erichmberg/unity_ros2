@@ -237,7 +237,7 @@
   </link>
 
   <joint name="gripper_base_fixed" type="fixed">
-    <origin xyz="0 0 0.06" rpy="0 0 0"/>
+    <origin xyz="0 0 0.085" rpy="0 1.57079632679 0"/>
     <parent link="tool0"/>
     <child link="gripper_base_link"/>
   </joint>
@@ -259,7 +259,7 @@
   </link>
 
   <joint name="left_finger_joint" type="revolute">
-    <origin xyz="0 0.03 0.04" rpy="0 0 0"/>
+    <origin xyz="0.01 0.032 0.03" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="left_finger_link"/>
     <axis xyz="0 0 1"/>
@@ -283,7 +283,7 @@
   </link>
 
   <joint name="right_finger_joint" type="revolute">
-    <origin xyz="0 -0.03 0.04" rpy="0 0 0"/>
+    <origin xyz="0.01 -0.032 0.03" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="right_finger_link"/>
     <axis xyz="0 0 1"/>
