@@ -224,14 +224,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl"/>
+        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_black"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl"/>
+        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -246,14 +246,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/finger.stl"/>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_light_gray"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/finger.stl"/>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -270,14 +270,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/finger.stl"/>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_light_gray"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/finger.stl"/>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
