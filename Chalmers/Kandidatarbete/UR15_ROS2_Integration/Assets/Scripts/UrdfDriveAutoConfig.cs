@@ -14,8 +14,14 @@ public class UrdfDriveAutoConfig : MonoBehaviour
     public float stiffness = 800f;
     public float damping = 200f;
     public float forceLimit = 300f;
-    public float target = 30f;
+    public float target = 0f;
     public float targetVelocity = 0f;
+
+    [Header("Safety / Stability")]
+    public bool excludeFingerJointsFromGlobalDrive = true;
+    public bool disableGravityOnFingerJoints = true;
+    public float fingerLinearDamping = 8f;
+    public float fingerAngularDamping = 8f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoCreate()
@@ -40,11 +46,27 @@ public class UrdfDriveAutoConfig : MonoBehaviour
 
         foreach (var body in allBodies)
         {
-            // Skip root fixed base if any
             if (body == null) continue;
+
+            string n = body.name.ToLowerInvariant();
+            bool isFinger = n.Contains("finger") || n.Contains("gripper");
+
+            // Stabilize fingers so they don't "fall off" due to aggressive global config.
+            if (isFinger)
+            {
+                if (disableGravityOnFingerJoints)
+                    body.useGravity = false;
+
+                body.linearDamping = Mathf.Max(body.linearDamping, fingerLinearDamping);
+                body.angularDamping = Mathf.Max(body.angularDamping, fingerAngularDamping);
+            }
 
             // Apply requested drive mode if this Unity version exposes it.
             TrySetDriveTypeForce(body);
+
+            // Optional: keep finger drives managed by dedicated gripper script.
+            if (isFinger && excludeFingerJointsFromGlobalDrive)
+                continue;
 
             if (body.jointType == ArticulationJointType.RevoluteJoint || body.jointType == ArticulationJointType.PrismaticJoint)
             {
