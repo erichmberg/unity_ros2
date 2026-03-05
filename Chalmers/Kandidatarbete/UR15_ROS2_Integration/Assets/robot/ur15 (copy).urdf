@@ -266,10 +266,8 @@
     <parent link="gripper_base_link"/>
     <child link="left_finger_link"/>
     <axis xyz="0 0 1"/>
-  
-    <limit lower="-3.14159265359" upper="3.14159265359" effort="800" velocity="200"/>
-    <dynamics damping="200" friction="0"/>
-    <safety_controller k_position="800" k_velocity="200" soft_lower_limit="-3.14159265359" soft_upper_limit="3.14159265359"/>
+    <limit lower="0.0" upper="0.7" effort="300" velocity="2.0"/>
+    <dynamics damping="20" friction="0"/>
   </joint>
 
   <link name="right_finger_link">
@@ -293,10 +291,8 @@
     <parent link="gripper_base_link"/>
     <child link="right_finger_link"/>
     <axis xyz="0 0 -1"/>
-  
-    <limit lower="-3.14159265359" upper="3.14159265359" effort="800" velocity="200"/>
-    <dynamics damping="200" friction="0"/>
-    <safety_controller k_position="800" k_velocity="200" soft_lower_limit="-3.14159265359" soft_upper_limit="3.14159265359"/>
+    <limit lower="0.0" upper="0.7" effort="300" velocity="2.0"/>
+    <dynamics damping="20" friction="0"/>
   </joint>
 
 
