@@ -430,6 +430,7 @@
 -analyzer:"/home/eric/Unity/Hub/Editor/6000.3.10f1/Editor/Data/Tools/BuildPipeline/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll"
 -analyzer:"/home/eric/Unity/Hub/Editor/6000.3.10f1/Editor/Data/Tools/BuildPipeline/Unity.SourceGenerators/Unity.SourceGenerators.dll"
 -analyzer:"/home/eric/Unity/Hub/Editor/6000.3.10f1/Editor/Data/Tools/BuildPipeline/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll"
+"Assets/Scripts/AutoAnchorArticulationRoots.cs"
 "Assets/Scripts/GripperFingerTest.cs"
 "Assets/Scripts/HttpCameraFeed.cs"
 "Assets/Scripts/JointStateToUr15.cs"
