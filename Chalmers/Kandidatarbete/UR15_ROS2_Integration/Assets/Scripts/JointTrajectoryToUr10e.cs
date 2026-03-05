@@ -6,10 +6,9 @@ using Unity.Robotics.ROSTCPConnector;
 using RosMessageTypes.Trajectory;
 using Unity.Robotics.UrdfImporter;
 
-public class JointTrajectoryToUr15 : MonoBehaviour
+public class JointTrajectoryToUr10e : MonoBehaviour
 {
-    public string topicName = "/unity/ur15_joint_trajectory";
-    public string secondaryTopicName = "/unity/ur10e_joint_trajectory";
+    public string topicName = "/unity/ur10e_joint_trajectory";
     public float maxDegreesPerSecond = 120f;
     public float fingerMaxDegreesPerSecond = 220f;
     public float maxMetersPerSecond = 0.20f;
@@ -29,11 +28,7 @@ public class JointTrajectoryToUr15 : MonoBehaviour
         BuildJointMapFromUrdf();
         var ros = ROSConnection.GetOrCreateInstance();
         ros.Subscribe<JointTrajectoryMsg>(topicName, OnTrajectory);
-
-        if (!string.IsNullOrWhiteSpace(secondaryTopicName) && secondaryTopicName != topicName)
-            ros.Subscribe<JointTrajectoryMsg>(secondaryTopicName, OnTrajectory);
-
-        Debug.Log($"JointTrajectoryToUr15 subscribed to: {topicName} and {secondaryTopicName}");
+        Debug.Log($"JointTrajectoryToUr10e subscribed to: {topicName}");
     }
 
     void FixedUpdate()
