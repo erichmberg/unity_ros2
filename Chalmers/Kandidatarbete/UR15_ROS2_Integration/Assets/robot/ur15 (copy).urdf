@@ -265,21 +265,21 @@
     <origin xyz="0.012 0.03 0.00" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="left_finger_link"/>
-    <axis xyz="0 1 0"/>
+    <axis xyz="1 0 0"/>
     <limit lower="0.0" upper="0.02" effort="300" velocity="0.05"/>
     <dynamics damping="20" friction="0"/>
   </joint>
 
   <link name="right_finger_link">
     <visual>
-      <origin xyz="0.095 0.03 -0.047" rpy="0 3.14159265359 -1.57079632679"/>
+      <origin xyz="0.095 0.03 0.047" rpy="0 0 1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_light_gray"/>
     </visual>
     <collision>
-      <origin xyz="0.095 0.03 -0.047" rpy="0 3.14159265359 -1.57079632679"/>
+      <origin xyz="0.095 0.03 0.047" rpy="0 0 1.57079632679"/>
       <geometry>
         <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -290,7 +290,7 @@
     <origin xyz="0.012 -0.03 0.00" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="right_finger_link"/>
-    <axis xyz="0 -1 0"/>
+    <axis xyz="-1 0 0"/>
     <limit lower="0.0" upper="0.02" effort="300" velocity="0.05"/>
     <dynamics damping="20" friction="0"/>
   </joint>
