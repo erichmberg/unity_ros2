@@ -11,9 +11,11 @@ public class JointTrajectoryToUr15 : MonoBehaviour
     public string topicName = "/unity/ur15_joint_trajectory";
     public float maxDegreesPerSecond = 120f;
     public float fingerMaxDegreesPerSecond = 220f;
+    public float maxMetersPerSecond = 0.20f;
+    public float fingerMaxMetersPerSecond = 0.06f;
 
     readonly Dictionary<string, ArticulationBody> jointMap = new();
-    readonly Dictionary<string, float> cmdDeg = new();
+    readonly Dictionary<string, float> cmdTarget = new();
 
     // Active trajectory
     JointTrajectoryPointMsg[] points;
@@ -81,19 +83,24 @@ public class JointTrajectoryToUr15 : MonoBehaviour
         t0 = Time.timeAsDouble;
     }
 
-    void ApplyPositions(double[] positionsRad)
+    void ApplyPositions(double[] positions)
     {
-        int n = Math.Min(jointNames.Length, positionsRad.Length);
+        int n = Math.Min(jointNames.Length, positions.Length);
         for (int i = 0; i < n; i++)
         {
             string jName = jointNames[i];
             if (!jointMap.TryGetValue(jName, out var joint))
                 continue;
 
-            float desiredDeg = (float)(positionsRad[i] * Mathf.Rad2Deg);
+            bool isFinger = jName.IndexOf("finger", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isPrismatic = joint.jointType == ArticulationJointType.PrismaticJoint;
+
+            // For revolute joints ROS values are radians; for prismatic values are meters.
+            float desired = isPrismatic
+                ? (float)positions[i]
+                : (float)(positions[i] * Mathf.Rad2Deg);
 
             var drive = joint.xDrive;
-            bool isFinger = jName.IndexOf("finger", StringComparison.OrdinalIgnoreCase) >= 0;
 
             // Ensure usable gains
             if (isFinger)
@@ -109,16 +116,18 @@ public class JointTrajectoryToUr15 : MonoBehaviour
                 if (drive.forceLimit <= 0f) drive.forceLimit = 1000f;
             }
 
-            // Speed-limit commanded target
-            float current = cmdDeg.TryGetValue(jName, out var v) ? v : drive.target;
-            float speed = isFinger ? fingerMaxDegreesPerSecond : maxDegreesPerSecond;
+            // Speed-limit commanded target (deg/s for revolute, m/s for prismatic).
+            float current = cmdTarget.TryGetValue(jName, out var v) ? v : drive.target;
+            float speed = isPrismatic
+                ? (isFinger ? fingerMaxMetersPerSecond : maxMetersPerSecond)
+                : (isFinger ? fingerMaxDegreesPerSecond : maxDegreesPerSecond);
             float maxStep = speed * Time.fixedDeltaTime;
-            float next = Mathf.MoveTowards(current, desiredDeg, maxStep);
+            float next = Mathf.MoveTowards(current, desired, maxStep);
 
             drive.target = next;
             joint.xDrive = drive;
 
-            cmdDeg[jName] = next;
+            cmdTarget[jName] = next;
         }
     }
 
