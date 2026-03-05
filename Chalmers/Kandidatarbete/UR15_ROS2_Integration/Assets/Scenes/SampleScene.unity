@@ -5670,7 +5670,7 @@ ArticulationBody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_Immovable: 0
+  m_Immovable: 1
   m_UseGravity: 1
   m_CollisionDetectionMode: 0
 --- !u!114 &1320036335
@@ -5697,6 +5697,7 @@ GameObject:
   - component: {fileID: 1325187358}
   - component: {fileID: 1325187357}
   - component: {fileID: 1325187356}
+  - component: {fileID: 1325187359}
   m_Layer: 0
   m_Name: ur15_unity_clean
   m_TagString: robot
@@ -5759,6 +5760,21 @@ Transform:
   - {fileID: 1549925093}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1325187359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325187355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef775765135e0a63caae6f6b50d0bdbc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JointTrajectoryToUr15
+  topicName: /unity/ur15_joint_trajectory
+  maxDegreesPerSecond: 120
+  fingerMaxDegreesPerSecond: 220
 --- !u!1 &1358293147
 GameObject:
   m_ObjectHideFlags: 8
