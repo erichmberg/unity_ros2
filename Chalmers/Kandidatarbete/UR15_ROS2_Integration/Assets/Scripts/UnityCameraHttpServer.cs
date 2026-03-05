@@ -42,6 +42,9 @@ public class UnityCameraHttpServer : MonoBehaviour
     private TextMesh _overlayText;
     private RenderTexture _rt;
     private Texture2D _readTex;
+    private int _appliedWidth;
+    private int _appliedHeight;
+    private int _appliedFps;
 
     private HttpListener _listener;
     private Thread _httpThread;
@@ -68,16 +71,12 @@ public class UnityCameraHttpServer : MonoBehaviour
             return;
         }
 
-        _rt = new RenderTexture(width, height, 16, RenderTextureFormat.ARGB32);
-        _readTex = new Texture2D(width, height, TextureFormat.RGB24, false);
-
         _endEffector = FindEndEffectorTransform();
         if (overlayPoseText)
             CreateOverlayText();
 
-        s_streamFps = Mathf.Max(1, fps);
         StartHttpServer();
-        InvokeRepeating(nameof(CaptureFrame), 0.05f, 1f / Mathf.Max(1, fps));
+        ApplyCaptureSettings(force: true);
 
         Debug.Log($"UnityCameraHttpServer running: http://0.0.0.0:{port}/frame.jpg");
     }
@@ -93,6 +92,8 @@ public class UnityCameraHttpServer : MonoBehaviour
 
     void Update()
     {
+        ApplyCaptureSettings(force: false);
+
         if (_endEffector != null)
             s_endEffectorWorldPos = _endEffector.position;
 
@@ -149,9 +150,47 @@ public class UnityCameraHttpServer : MonoBehaviour
         }
     }
 
+    void ApplyCaptureSettings(bool force)
+    {
+        int w = Mathf.Max(64, width);
+        int h = Mathf.Max(64, height);
+        int f = Mathf.Max(1, fps);
+
+        bool sizeChanged = force || w != _appliedWidth || h != _appliedHeight;
+        bool fpsChanged = force || f != _appliedFps;
+
+        if (sizeChanged)
+        {
+            if (_rt != null)
+            {
+                _rt.Release();
+                Destroy(_rt);
+            }
+            if (_readTex != null)
+                Destroy(_readTex);
+
+            _rt = new RenderTexture(w, h, 16, RenderTextureFormat.ARGB32);
+            _readTex = new Texture2D(w, h, TextureFormat.RGB24, false);
+
+            _appliedWidth = w;
+            _appliedHeight = h;
+            Debug.Log($"UnityCameraHttpServer: applied stream resolution {w}x{h}");
+        }
+
+        if (fpsChanged)
+        {
+            _appliedFps = f;
+            s_streamFps = f;
+            CancelInvoke(nameof(CaptureFrame));
+            InvokeRepeating(nameof(CaptureFrame), 0.02f, 1f / _appliedFps);
+            Debug.Log($"UnityCameraHttpServer: applied stream fps {_appliedFps}");
+        }
+    }
+
     void CaptureFrame()
     {
         if (_targetCamera == null) return;
+        if (_rt == null || _readTex == null) return;
 
         var prev = _targetCamera.targetTexture;
         var prevActive = RenderTexture.active;
