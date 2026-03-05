@@ -10,6 +10,7 @@ public class JointTrajectoryToUr15 : MonoBehaviour
 {
     public string topicName = "/unity/ur15_joint_trajectory";
     public float maxDegreesPerSecond = 120f;
+    public float fingerMaxDegreesPerSecond = 220f;
 
     readonly Dictionary<string, ArticulationBody> jointMap = new();
     readonly Dictionary<string, float> cmdDeg = new();
@@ -92,15 +93,26 @@ public class JointTrajectoryToUr15 : MonoBehaviour
             float desiredDeg = (float)(positionsRad[i] * Mathf.Rad2Deg);
 
             var drive = joint.xDrive;
+            bool isFinger = jName.IndexOf("finger", StringComparison.OrdinalIgnoreCase) >= 0;
 
             // Ensure usable gains
-            if (drive.stiffness <= 0f) drive.stiffness = 1500f;
-            if (drive.damping <= 0f) drive.damping = 400f;
-            if (drive.forceLimit <= 0f) drive.forceLimit = 1000f;
+            if (isFinger)
+            {
+                if (drive.stiffness <= 0f) drive.stiffness = 8000f;
+                if (drive.damping <= 0f) drive.damping = 300f;
+                if (drive.forceLimit <= 0f) drive.forceLimit = 3000f;
+            }
+            else
+            {
+                if (drive.stiffness <= 0f) drive.stiffness = 1500f;
+                if (drive.damping <= 0f) drive.damping = 400f;
+                if (drive.forceLimit <= 0f) drive.forceLimit = 1000f;
+            }
 
             // Speed-limit commanded target
             float current = cmdDeg.TryGetValue(jName, out var v) ? v : drive.target;
-            float maxStep = maxDegreesPerSecond * Time.fixedDeltaTime;
+            float speed = isFinger ? fingerMaxDegreesPerSecond : maxDegreesPerSecond;
+            float maxStep = speed * Time.fixedDeltaTime;
             float next = Mathf.MoveTowards(current, desiredDeg, maxStep);
 
             drive.target = next;
