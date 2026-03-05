@@ -265,8 +265,8 @@
     <origin xyz="0.012 0.03 0.00" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="left_finger_link"/>
-    <axis xyz="0 1 0"/>
-    <limit lower="0.0" upper="0.02" effort="300" velocity="0.05"/>
+    <axis xyz="0 0 -1"/>
+    <limit lower="0.0" upper="20" effort="2000" velocity="0.05"/>
     <dynamics damping="20" friction="0"/>
   </joint>
 
@@ -290,8 +290,8 @@
     <origin xyz="0.012 -0.03 0.00" rpy="0 0 0"/>
     <parent link="gripper_base_link"/>
     <child link="right_finger_link"/>
-    <axis xyz="0 -1 0"/>
-    <limit lower="0.0" upper="0.02" effort="300" velocity="0.05"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="20" effort="2000" velocity="0.05"/>
     <dynamics damping="20" friction="0"/>
   </joint>
 
