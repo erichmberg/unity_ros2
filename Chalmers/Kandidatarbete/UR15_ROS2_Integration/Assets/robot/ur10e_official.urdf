@@ -4,6 +4,10 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="ur10e_robot">
+  <material name="ur_black"><color rgba="0.08 0.08 0.08 1.0"/></material>
+  <material name="ur_dark_gray"><color rgba="0.20 0.20 0.20 1.0"/></material>
+  <material name="ur_light_gray"><color rgba="0.82 0.82 0.83 1.0"/></material>
+  <material name="ur_blue"><color rgba="0.0 0.45 0.74 1.0"/></material>
   <!--
     Base UR robot series xacro macro.
 
@@ -121,9 +125,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/base.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_dark_gray"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
@@ -143,9 +145,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/shoulder.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
@@ -165,9 +165,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/upperarm.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_light_gray"/>
     </visual>
     <collision>
       <origin rpy="1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0.1762"/>
@@ -187,9 +185,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/forearm.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_blue"/>
     </visual>
     <collision>
       <origin rpy="1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0.0393"/>
@@ -210,9 +206,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/wrist1.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_blue"/>
     </visual>
     <collision>
       <origin rpy="1.5707963267948966 0 0" xyz="0 0 -0.135"/>
@@ -232,9 +226,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/wrist2.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_dark_gray"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 -0.12"/>
@@ -254,9 +246,7 @@
       <geometry>
         <mesh filename="package://ur_description/meshes/ur10e/visual/wrist3.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="ur_dark_gray"/>
     </visual>
     <collision>
       <origin rpy="1.5707963267948966 0 0" xyz="0 0 -0.1168"/>
@@ -356,5 +346,79 @@
     <parent link="flange"/>
     <child link="tool0"/>
   </joint>
+
+  <!-- ================= TOOLING: 2-FINGER GRIPPER ================= -->
+  <link name="gripper_base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="3.14159265359 1.57079632679 1.57079632679"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="ur_black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="3.14159265359 1.57079632679 1.57079632679"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="tool0-gripper_base_fixed" type="fixed">
+    <origin xyz="0 0 0" rpy="0 -1.57079632679 0"/>
+    <parent link="tool0"/>
+    <child link="gripper_base_link"/>
+  </joint>
+
+  <link name="left_finger_link">
+    <visual>
+      <origin xyz="0.095 -0.03 0.047" rpy="0 0 -1.57079632679"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="ur_light_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0.095 -0.03 0.047" rpy="0 0 -1.57079632679"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="left_finger_joint" type="prismatic">
+    <origin xyz="0.012 0.03 0.00" rpy="0 0 0"/>
+    <parent link="gripper_base_link"/>
+    <child link="left_finger_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="0.06" effort="300" velocity="0.05"/>
+    <dynamics damping="20" friction="0"/>
+  </joint>
+
+  <link name="right_finger_link">
+    <visual>
+      <origin xyz="0.095 0.03 -0.047" rpy="0 3.14159265359 -1.57079632679"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="ur_light_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0.095 0.03 -0.047" rpy="0 3.14159265359 -1.57079632679"/>
+      <geometry>
+        <mesh filename="package://ur_description/meshes/gripper/finger.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="right_finger_joint" type="prismatic">
+    <origin xyz="0.012 -0.03 0.00" rpy="0 0 0"/>
+    <parent link="gripper_base_link"/>
+    <child link="right_finger_link"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0.0" upper="0.06" effort="300" velocity="0.05"/>
+    <dynamics damping="20" friction="0"/>
+  </joint>
+
 </robot>
 
