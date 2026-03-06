@@ -80,3 +80,33 @@ ros2 topic pub --once /unity/ur10e_joint_trajectory trajectory_msgs/msg/JointTra
 
 ### Input error (legacy vs Input System)
 - Set **Active Input Handling** to **Both** in Player settings.
+
+## G) Pose target pipeline (Unity -> ROS2 planner)
+
+Use this when testing auto planning from Unity target poses.
+
+### Unity setup
+- Add `UnityGraspTargetPublisher` component to any GameObject.
+- Assign `targetTransform` (the object/marker you want robot to reach).
+- Keep topic as `/unity/grasp_target`.
+- Press **G** in Play mode to publish one target pose.
+
+### ROS2 check (see target messages)
+```bash
+source /opt/ros/humble/setup.bash
+source ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/setup.bash
+ros2 topic echo /unity/grasp_target
+```
+
+### Manual one-shot target publish (without Unity)
+```bash
+source /opt/ros/humble/setup.bash
+source ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/setup.bash
+ros2 topic pub -1 /unity/grasp_target geometry_msgs/PoseStamped "{
+  header: {frame_id: 'world'},
+  pose: {
+    position: {x: 0.45, y: 0.0, z: 0.35},
+    orientation: {x: 0.0, y: 1.0, z: 0.0, w: 0.0}
+  }
+}"
+```
