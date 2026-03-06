@@ -79,10 +79,6 @@ def generate_launch_description():
             parameters=[
                 robot_description,
                 robot_description_semantic,
-                kinematics_yaml,
-                joint_limits_yaml,
-                ompl_yaml,
-                chomp_yaml,
             ],
         ),
     ])
