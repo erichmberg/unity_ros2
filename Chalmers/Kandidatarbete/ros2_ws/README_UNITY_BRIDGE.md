@@ -29,7 +29,7 @@ source install/setup.bash
 ros2 launch ur10e_moveit_config demo.launch.py
 ```
 
-### Terminal C: Bridge
+### Terminal C: Bridge (+ floor collision object)
 ```bash
 cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
 source /opt/ros/humble/setup.bash
@@ -39,3 +39,6 @@ ros2 launch ur10e_unity_bridge bridge.launch.py
 
 Now, in RViz MotionPlanning: click **Plan**.
 The bridge will immediately publish planned trajectory to Unity topic.
+
+The same launch also publishes a floor collision object to MoveIt
+so plans avoid going through the floor.

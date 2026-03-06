@@ -20,6 +20,7 @@ setup(
     entry_points={
         'console_scripts': [
             'display_to_unity = ur10e_unity_bridge.display_to_unity:main',
+            'floor_collision_publisher = ur10e_unity_bridge.floor_collision_publisher:main',
         ],
     },
 )
