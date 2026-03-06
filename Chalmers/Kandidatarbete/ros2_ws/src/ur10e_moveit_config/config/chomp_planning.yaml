@@ -1,5 +1,5 @@
 chomp:
-  planning_plugins: [chomp_interface/CHOMPPlanner]
+  planning_plugin: chomp_interface/CHOMPPlanner
   request_adapters: >-
     default_planner_request_adapters/FixWorkspaceBounds
     default_planner_request_adapters/FixStartStateBounds
