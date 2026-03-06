@@ -352,14 +352,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="3.14159265359 1.57079632679 1.57079632679"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers_light.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="ur_black"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="3.14159265359 1.57079632679 1.57079632679"/>
       <geometry>
-        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://ur_description/meshes/gripper/gripper_base_with_partial_fingers_light.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
