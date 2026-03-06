@@ -40,3 +40,28 @@ ros2 launch ur10e_unity_bridge bridge.launch.py
 Now, in RViz MotionPlanning: click **Plan**.
 The bridge will immediately publish planned trajectory to Unity topic.
 
+## Camera/Perception-driven auto planning (starter)
+Publish a target pose to `/unity/grasp_target` (`geometry_msgs/PoseStamped`) and let ROS2 plan automatically,
+then send trajectory to Unity.
+
+### Terminal D: Pose-goal planner
+```bash
+cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch ur10e_unity_bridge pose_goal_planner.launch.py
+```
+
+### Manual test target publish
+```bash
+source /opt/ros/humble/setup.bash
+source ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/setup.bash
+ros2 topic pub -1 /unity/grasp_target geometry_msgs/PoseStamped "{
+  header: {frame_id: 'world'},
+  pose: {
+    position: {x: 0.45, y: 0.0, z: 0.35},
+    orientation: {x: 0.0, y: 1.0, z: 0.0, w: 0.0}
+  }
+}"
+```
+
