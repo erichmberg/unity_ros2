@@ -1,0 +1,25 @@
+planning_scene_monitor_options:
+  name: planning_scene_monitor
+  robot_description: robot_description
+  joint_state_topic: /joint_states
+  attached_collision_object_topic: /move_group/planning_scene_monitor
+  publish_planning_scene_topic: /move_group/publish_planning_scene
+  monitored_planning_scene_topic: /move_group/monitored_planning_scene
+  wait_for_initial_state_timeout: 10.0
+
+planning_pipelines: [ompl, chomp]
+default_planning_pipeline: ompl
+
+trajectory_execution:
+  allowed_execution_duration_scaling: 1.2
+  allowed_goal_duration_margin: 0.5
+  allowed_start_tolerance: 0.01
+  execution_duration_monitoring: false
+
+plan_execution:
+  record_trajectory_state_frequency: 10.0
+
+moveit_manage_controllers: false
+
+publish_robot_description_semantic: true
+publish_robot_description: true

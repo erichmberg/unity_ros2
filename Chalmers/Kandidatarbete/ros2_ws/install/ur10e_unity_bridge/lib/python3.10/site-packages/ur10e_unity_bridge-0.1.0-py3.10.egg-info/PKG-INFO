@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: ur10e-unity-bridge
+Version: 0.1.0
+Summary: Bridge MoveIt planned trajectories to Unity joint trajectory topic
+Home-page: UNKNOWN
+Maintainer: Eric Berg
+Maintainer-email: eric@example.com
+License: Apache-2.0
+Platform: UNKNOWN
+
+UNKNOWN
+
