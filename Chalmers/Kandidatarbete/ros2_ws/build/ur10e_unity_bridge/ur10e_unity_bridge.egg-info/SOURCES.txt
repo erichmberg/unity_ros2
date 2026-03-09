@@ -10,9 +10,11 @@ setup.py
 ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/zip-safe
 launch/autonomy.launch.py
 launch/bridge.launch.py
+launch/pick_autonomy.launch.py
 launch/pose_goal_planner.launch.py
 resource/ur10e_unity_bridge
 ur10e_unity_bridge/__init__.py
 ur10e_unity_bridge/display_to_unity.py
 ur10e_unity_bridge/floor_collision_publisher.py
+ur10e_unity_bridge/pick_sequence_planner.py
 ur10e_unity_bridge/pose_goal_planner.py

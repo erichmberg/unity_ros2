@@ -3029,8 +3029,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.08717229, y: 0.8995905, z: -0.21045253, w: -0.37262273}
-  m_LocalPosition: {x: 1.7421784, y: 1.2195247, z: 1.7421786}
+  m_LocalRotation: {x: 0.13694409, y: 0.69511646, z: -0.13751258, w: 0.69220644}
+  m_LocalPosition: {x: -3.3583095, y: 2.2927911, z: 0.11335622}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5234,15 +5234,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1581547572}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.7071068, y: -0.7071068, z: 0, w: 0}
+  m_LocalPosition: {x: -0.04, y: 1.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 805275448}
   - {fileID: 1214894370}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 180, y: 0, z: 90}
 --- !u!1 &1584439287
 GameObject:
   m_ObjectHideFlags: 0
@@ -5793,6 +5793,65 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfVisual
   geometryType: 3
+--- !u!1001 &1774382339
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.378
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+      propertyPath: m_Name
+      value: RitaCell
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects:
+    - {fileID: -8700617353114198275, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+    - {fileID: 65702495048144492, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 13c9635a891dfef718de1929af2e68de, type: 3}
 --- !u!1 &1779403233
 GameObject:
   m_ObjectHideFlags: 0
@@ -5909,10 +5968,19 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   minBounds: {x: 0.2, y: -0.35, z: 0.2}
   maxBounds: {x: 0.65, y: 0.35, z: 0.55}
+  upAxis: 0
+  floorLevel: 0
+  minClearanceAboveFloor: 0.06
   minReachMeters: 0.18
   maxReachMeters: 1.05
   reachableColor: {r: 0.1, g: 0.85, b: 0.25, a: 1}
   unreachableColor: {r: 0.9, g: 0.15, b: 0.15, a: 1}
+  autoCreateVisibleMarkerIfMissing: 1
+  markerScale: 0.04
+  spawnBoxOnPublish: 1
+  boxPrefab: {fileID: 0}
+  boxScale: {x: 0.05, y: 0.05, z: 0.05}
+  boxTopTargetOffset: 0.005
   randomizeKey: 114
   randomizeAndPublishKey: 116
 --- !u!1 &1869917536
@@ -6989,3 +7057,4 @@ SceneRoots:
   - {fileID: 1779474634}
   - {fileID: 9933660}
   - {fileID: 1581547576}
+  - {fileID: 1774382339}
