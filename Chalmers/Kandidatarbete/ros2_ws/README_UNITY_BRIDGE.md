@@ -37,9 +37,17 @@ source install/setup.bash
 ros2 launch ur10e_unity_bridge autonomy.launch.py
 ```
 
+### Terminal C (pick sequence mode): bridge + staged pick planner + floor
+```bash
+cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch ur10e_unity_bridge pick_autonomy.launch.py
+```
+
 This one launch starts:
 - MoveIt display trajectory -> Unity bridge
-- `/unity/grasp_target` pose planner -> Unity trajectory
+- `/unity/grasp_target` staged pick planner (pregrasp -> grasp -> close -> lift)
 - Continuous floor collision publisher (so floor doesn't disappear)
 
 Now you only need 3 terminals total.
