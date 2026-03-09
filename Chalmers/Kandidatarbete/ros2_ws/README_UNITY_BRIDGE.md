@@ -46,9 +46,10 @@ ros2 launch ur10e_unity_bridge pick_autonomy.launch.py
 ```
 
 This one launch starts:
-- MoveIt display trajectory -> Unity bridge
 - `/unity/grasp_target` staged pick planner (pregrasp -> grasp -> close -> lift)
 - Continuous floor collision publisher (so floor doesn't disappear)
+
+Note: In pick mode, the RViz display bridge is intentionally disabled to avoid trajectory conflicts.
 
 Now you only need 3 terminals total.
 

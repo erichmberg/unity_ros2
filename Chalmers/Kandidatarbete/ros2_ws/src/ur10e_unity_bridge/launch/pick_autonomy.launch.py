@@ -4,18 +4,6 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
-        # RViz plan preview -> Unity trajectory
-        Node(
-            package='ur10e_unity_bridge',
-            executable='display_to_unity',
-            output='screen',
-            parameters=[{
-                'input_topic': '/display_planned_path',
-                'unity_topic': '/unity/ur10e_joint_trajectory',
-                'publish_on_every_plan': True,
-            }],
-        ),
-
         # Unity grasp target -> staged pick sequence (pregrasp -> grasp -> close -> lift)
         Node(
             package='ur10e_unity_bridge',

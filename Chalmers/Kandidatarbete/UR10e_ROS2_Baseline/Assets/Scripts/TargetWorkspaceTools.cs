@@ -37,6 +37,13 @@ public class TargetWorkspaceTools : MonoBehaviour
     public bool autoCreateVisibleMarkerIfMissing = true;
     public float markerScale = 0.04f;
 
+    [Header("Spawn box for pick demo")]
+    public bool spawnBoxOnPublish = true;
+    public GameObject boxPrefab;
+    public Vector3 boxScale = new Vector3(0.05f, 0.05f, 0.05f);
+    public float boxTopTargetOffset = 0.005f;
+    GameObject currentBox;
+
     [Header("Keybinds")]
     public KeyCode randomizeKey = KeyCode.R;
     public KeyCode randomizeAndPublishKey = KeyCode.T;
@@ -114,7 +121,47 @@ public class TargetWorkspaceTools : MonoBehaviour
     public void RandomizeAndPublish()
     {
         RandomizeTargetInBounds();
+
+        if (spawnBoxOnPublish)
+            SpawnOrMoveBoxAtTarget();
+
         PublishTarget();
+    }
+
+    void SpawnOrMoveBoxAtTarget()
+    {
+        if (targetTransform == null)
+            return;
+
+        if (currentBox == null)
+        {
+            if (boxPrefab != null)
+                currentBox = Instantiate(boxPrefab);
+            else
+                currentBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+            currentBox.name = "PickBox";
+        }
+
+        currentBox.transform.localScale = boxScale;
+
+        // Place box on floor using selected up axis
+        Vector3 p = targetTransform.position;
+        if (upAxis == UpAxis.Y)
+            p.y = floorLevel + boxScale.y * 0.5f;
+        else
+            p.z = floorLevel + boxScale.z * 0.5f;
+        currentBox.transform.position = p;
+
+        // Move target marker to top-center of box (where gripper should go)
+        Vector3 top = p;
+        if (upAxis == UpAxis.Y)
+            top.y += boxScale.y * 0.5f + boxTopTargetOffset;
+        else
+            top.z += boxScale.z * 0.5f + boxTopTargetOffset;
+        targetTransform.position = top;
+
+        UpdateReachabilityColor();
     }
 
     public bool IsReachableSimple()
