@@ -18,6 +18,10 @@ public class TargetWorkspaceTools : MonoBehaviour
     public Vector3 minBounds = new Vector3(0.20f, -0.35f, 0.20f);
     public Vector3 maxBounds = new Vector3(0.65f, 0.35f, 0.55f);
 
+    [Header("Floor safety")]
+    public float floorZ = 0.0f;
+    public float minClearanceAboveFloor = 0.06f;
+
     [Header("Simple reachability")]
     public float minReachMeters = 0.18f;
     public float maxReachMeters = 1.05f;
@@ -25,6 +29,10 @@ public class TargetWorkspaceTools : MonoBehaviour
     [Header("Colors")]
     public Color reachableColor = new Color(0.10f, 0.85f, 0.25f, 1f);
     public Color unreachableColor = new Color(0.90f, 0.15f, 0.15f, 1f);
+
+    [Header("Visibility")]
+    public bool autoCreateVisibleMarkerIfMissing = true;
+    public float markerScale = 0.04f;
 
     [Header("Keybinds")]
     public KeyCode randomizeKey = KeyCode.R;
@@ -37,6 +45,18 @@ public class TargetWorkspaceTools : MonoBehaviour
 
         if (targetRenderer == null && targetTransform != null)
             targetRenderer = targetTransform.GetComponentInChildren<Renderer>();
+
+        if (targetRenderer == null && autoCreateVisibleMarkerIfMissing && targetTransform != null)
+        {
+            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sphere.name = "TargetVisualMarker";
+            sphere.transform.SetParent(targetTransform, false);
+            sphere.transform.localPosition = Vector3.zero;
+            sphere.transform.localRotation = Quaternion.identity;
+            sphere.transform.localScale = Vector3.one * Mathf.Max(0.005f, markerScale);
+            targetRenderer = sphere.GetComponent<Renderer>();
+            Debug.Log("TargetWorkspaceTools: created fallback visible marker sphere.");
+        }
 
         if (publisher == null)
             publisher = FindObjectOfType<UnityGraspTargetPublisher>();
@@ -58,10 +78,12 @@ public class TargetWorkspaceTools : MonoBehaviour
         if (targetTransform == null)
             return;
 
+        float safeMinZ = Mathf.Max(minBounds.z, floorZ + minClearanceAboveFloor);
+
         var p = new Vector3(
             Random.Range(minBounds.x, maxBounds.x),
             Random.Range(minBounds.y, maxBounds.y),
-            Random.Range(minBounds.z, maxBounds.z)
+            Random.Range(safeMinZ, maxBounds.z)
         );
 
         targetTransform.position = p;
@@ -99,7 +121,7 @@ public class TargetWorkspaceTools : MonoBehaviour
             return false;
 
         // Extra floor sanity guard
-        if (targetTransform.position.z < minBounds.z)
+        if (targetTransform.position.z < Mathf.Max(minBounds.z, floorZ + minClearanceAboveFloor))
             return false;
 
         return true;
@@ -113,5 +135,28 @@ public class TargetWorkspaceTools : MonoBehaviour
         bool ok = IsReachableSimple();
         if (targetRenderer.material != null)
             targetRenderer.material.color = ok ? reachableColor : unreachableColor;
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        // Workspace box
+        Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.25f);
+        Vector3 center = (minBounds + maxBounds) * 0.5f;
+        Vector3 size = maxBounds - minBounds;
+        Gizmos.DrawCube(center, size);
+
+        Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.9f);
+        Gizmos.DrawWireCube(center, size);
+
+        // Floor line at configured z
+        Gizmos.color = Color.yellow;
+        Vector3 a = new Vector3(minBounds.x, minBounds.y, floorZ);
+        Vector3 b = new Vector3(maxBounds.x, minBounds.y, floorZ);
+        Vector3 c = new Vector3(maxBounds.x, maxBounds.y, floorZ);
+        Vector3 d = new Vector3(minBounds.x, maxBounds.y, floorZ);
+        Gizmos.DrawLine(a, b);
+        Gizmos.DrawLine(b, c);
+        Gizmos.DrawLine(c, d);
+        Gizmos.DrawLine(d, a);
     }
 }
