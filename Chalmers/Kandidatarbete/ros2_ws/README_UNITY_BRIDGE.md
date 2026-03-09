@@ -11,7 +11,7 @@ colcon build --packages-select ur10e_unity_bridge ur10e_moveit_config ur_descrip
 source install/setup.bash
 ```
 
-## Run (3 terminals)
+## Run (recommended, 3 terminals)
 
 ### Terminal A: Unity ROS TCP endpoint
 ```bash
@@ -29,28 +29,24 @@ source install/setup.bash
 ros2 launch ur10e_moveit_config demo.launch.py
 ```
 
-### Terminal C: Bridge
+### Terminal C: Autonomy bridge bundle (bridge + pose planner + floor)
 ```bash
 cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch ur10e_unity_bridge bridge.launch.py
+ros2 launch ur10e_unity_bridge autonomy.launch.py
 ```
 
-Now, in RViz MotionPlanning: click **Plan**.
-The bridge will immediately publish planned trajectory to Unity topic.
+This one launch starts:
+- MoveIt display trajectory -> Unity bridge
+- `/unity/grasp_target` pose planner -> Unity trajectory
+- Continuous floor collision publisher (so floor doesn't disappear)
+
+Now you only need 3 terminals total.
 
 ## Camera/Perception-driven auto planning (starter)
-Publish a target pose to `/unity/grasp_target` (`geometry_msgs/PoseStamped`) and let ROS2 plan automatically,
+Publish a target pose to `/unity/grasp_target` (`geometry_msgs/PoseStamped`) and ROS2 will plan automatically,
 then send trajectory to Unity.
-
-### Terminal D: Pose-goal planner
-```bash
-cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 launch ur10e_unity_bridge pose_goal_planner.launch.py
-```
 
 ### Manual test target publish
 ```bash

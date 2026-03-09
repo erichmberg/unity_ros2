@@ -16,7 +16,7 @@ class FloorCollisionPublisher(Node):
         self.declare_parameter('size_y', 4.0)
         self.declare_parameter('size_z', 0.10)
         self.declare_parameter('z_center', -0.12)
-        self.declare_parameter('repeats', 10)
+        self.declare_parameter('repeats', 0)
 
         topic = self.get_parameter('topic').value
         self.frame_id = self.get_parameter('frame_id').value
@@ -30,7 +30,10 @@ class FloorCollisionPublisher(Node):
         self.pub = self.create_publisher(CollisionObject, topic, 10)
         self.count = 0
         self.timer = self.create_timer(0.5, self.publish_once)
-        self.get_logger().info(f'Publishing floor collision object to {topic}')
+        if self.repeats > 0:
+            self.get_logger().info(f'Publishing floor collision object to {topic} (repeats={self.repeats})')
+        else:
+            self.get_logger().info(f'Publishing floor collision object continuously to {topic}')
 
     def publish_once(self):
         msg = CollisionObject()
@@ -54,7 +57,7 @@ class FloorCollisionPublisher(Node):
         self.pub.publish(msg)
         self.count += 1
 
-        if self.count >= self.repeats:
+        if self.repeats > 0 and self.count >= self.repeats:
             self.get_logger().info('Floor collision object published.')
             self.timer.cancel()
 
