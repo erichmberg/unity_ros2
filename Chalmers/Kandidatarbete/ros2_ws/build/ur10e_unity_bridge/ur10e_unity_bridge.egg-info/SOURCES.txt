@@ -8,6 +8,7 @@ setup.py
 ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/requires.txt
 ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/top_level.txt
 ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/zip-safe
+launch/autonomy.launch.py
 launch/bridge.launch.py
 launch/pose_goal_planner.launch.py
 resource/ur10e_unity_bridge
