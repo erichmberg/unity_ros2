@@ -5849,6 +5849,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1779474634}
   - component: {fileID: 1779474633}
+  - component: {fileID: 1779474635}
   m_Layer: 0
   m_Name: UnityGraspTargetPublisher
   m_TagString: Untagged
@@ -5890,6 +5891,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1779474635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1779474632}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b4e6f2f4b1944b4a8a5d5f79aa0f4d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetWorkspaceTools
+  targetTransform: {fileID: 1779474634}
+  robotBaseTransform: {fileID: 1665173046}
+  publisher: {fileID: 1779474633}
+  targetRenderer: {fileID: 0}
+  minBounds: {x: 0.2, y: -0.35, z: 0.2}
+  maxBounds: {x: 0.65, y: 0.35, z: 0.55}
+  minReachMeters: 0.18
+  maxReachMeters: 1.05
+  reachableColor: {r: 0.1, g: 0.85, b: 0.25, a: 1}
+  unreachableColor: {r: 0.9, g: 0.15, b: 0.15, a: 1}
+  randomizeKey: 114
+  randomizeAndPublishKey: 116
 --- !u!1 &1869917536
 GameObject:
   m_ObjectHideFlags: 0
