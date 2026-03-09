@@ -94,7 +94,7 @@ Use this when testing auto planning from Unity target poses.
 Optional helper:
 - Add `TargetWorkspaceTools` to the target object.
 - Assign `robotBaseTransform` and `publisher`.
-- Set `floorZ` to your Unity floor level and `minClearanceAboveFloor` (e.g. 0.06).
+- Set `upAxis = Y` for Unity (default), `floorLevel` to your floor height, and `minClearanceAboveFloor` (e.g. 0.06).
 - Press **R** to randomize target inside safe bounds (above floor).
 - Press **T** to randomize + publish target in one keypress.
 - If target has no renderer, script creates a visible sphere marker automatically.

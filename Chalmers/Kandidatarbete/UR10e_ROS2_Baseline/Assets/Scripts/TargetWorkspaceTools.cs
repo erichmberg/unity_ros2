@@ -18,8 +18,11 @@ public class TargetWorkspaceTools : MonoBehaviour
     public Vector3 minBounds = new Vector3(0.20f, -0.35f, 0.20f);
     public Vector3 maxBounds = new Vector3(0.65f, 0.35f, 0.55f);
 
+    public enum UpAxis { Y, Z }
+
     [Header("Floor safety")]
-    public float floorZ = 0.0f;
+    public UpAxis upAxis = UpAxis.Y;
+    public float floorLevel = 0.0f;
     public float minClearanceAboveFloor = 0.06f;
 
     [Header("Simple reachability")]
@@ -78,12 +81,15 @@ public class TargetWorkspaceTools : MonoBehaviour
         if (targetTransform == null)
             return;
 
-        float safeMinZ = Mathf.Max(minBounds.z, floorZ + minClearanceAboveFloor);
+        float safeMinUp = Mathf.Max(
+            upAxis == UpAxis.Y ? minBounds.y : minBounds.z,
+            floorLevel + minClearanceAboveFloor
+        );
 
         var p = new Vector3(
             Random.Range(minBounds.x, maxBounds.x),
-            Random.Range(minBounds.y, maxBounds.y),
-            Random.Range(safeMinZ, maxBounds.z)
+            upAxis == UpAxis.Y ? Random.Range(safeMinUp, maxBounds.y) : Random.Range(minBounds.y, maxBounds.y),
+            upAxis == UpAxis.Z ? Random.Range(safeMinUp, maxBounds.z) : Random.Range(minBounds.z, maxBounds.z)
         );
 
         targetTransform.position = p;
@@ -120,8 +126,10 @@ public class TargetWorkspaceTools : MonoBehaviour
         if (d < minReachMeters || d > maxReachMeters)
             return false;
 
-        // Extra floor sanity guard
-        if (targetTransform.position.z < Mathf.Max(minBounds.z, floorZ + minClearanceAboveFloor))
+        // Extra floor sanity guard (based on selected up axis)
+        float up = upAxis == UpAxis.Y ? targetTransform.position.y : targetTransform.position.z;
+        float minUp = Mathf.Max(upAxis == UpAxis.Y ? minBounds.y : minBounds.z, floorLevel + minClearanceAboveFloor);
+        if (up < minUp)
             return false;
 
         return true;
@@ -148,15 +156,29 @@ public class TargetWorkspaceTools : MonoBehaviour
         Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.9f);
         Gizmos.DrawWireCube(center, size);
 
-        // Floor line at configured z
+        // Floor plane outline at configured level
         Gizmos.color = Color.yellow;
-        Vector3 a = new Vector3(minBounds.x, minBounds.y, floorZ);
-        Vector3 b = new Vector3(maxBounds.x, minBounds.y, floorZ);
-        Vector3 c = new Vector3(maxBounds.x, maxBounds.y, floorZ);
-        Vector3 d = new Vector3(minBounds.x, maxBounds.y, floorZ);
-        Gizmos.DrawLine(a, b);
-        Gizmos.DrawLine(b, c);
-        Gizmos.DrawLine(c, d);
-        Gizmos.DrawLine(d, a);
+        if (upAxis == UpAxis.Y)
+        {
+            Vector3 a = new Vector3(minBounds.x, floorLevel, minBounds.z);
+            Vector3 b = new Vector3(maxBounds.x, floorLevel, minBounds.z);
+            Vector3 c = new Vector3(maxBounds.x, floorLevel, maxBounds.z);
+            Vector3 d = new Vector3(minBounds.x, floorLevel, maxBounds.z);
+            Gizmos.DrawLine(a, b);
+            Gizmos.DrawLine(b, c);
+            Gizmos.DrawLine(c, d);
+            Gizmos.DrawLine(d, a);
+        }
+        else
+        {
+            Vector3 a = new Vector3(minBounds.x, minBounds.y, floorLevel);
+            Vector3 b = new Vector3(maxBounds.x, minBounds.y, floorLevel);
+            Vector3 c = new Vector3(maxBounds.x, maxBounds.y, floorLevel);
+            Vector3 d = new Vector3(minBounds.x, maxBounds.y, floorLevel);
+            Gizmos.DrawLine(a, b);
+            Gizmos.DrawLine(b, c);
+            Gizmos.DrawLine(c, d);
+            Gizmos.DrawLine(d, a);
+        }
     }
 }
