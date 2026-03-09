@@ -91,6 +91,12 @@ Use this when testing auto planning from Unity target poses.
 - Keep topic as `/unity/grasp_target`.
 - Press **G** in Play mode to publish one target pose.
 
+Optional helper:
+- Add `TargetWorkspaceTools` to the target object.
+- Assign `robotBaseTransform` and `publisher`.
+- Press **R** to randomize target inside safe bounds.
+- Press **T** to randomize + publish target in one keypress.
+
 ### ROS2 check (see target messages)
 ```bash
 source /opt/ros/humble/setup.bash
