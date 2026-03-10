@@ -33,7 +33,14 @@ public class JointTrajectoryToUr10e : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (points == null || points.Length == 0 || jointNames == null) return;
+        if (points == null || points.Length == 0 || jointNames == null || tPoints == null) return;
+
+        // Handle single-point trajectories directly (common for quick tests).
+        if (points.Length == 1 || tPoints.Length == 1)
+        {
+            ApplyPositions(points[0].positions);
+            return;
+        }
 
         double t = Time.timeAsDouble - t0;
 
@@ -44,6 +51,13 @@ public class JointTrajectoryToUr10e : MonoBehaviour
 
         // clamp to final point
         if (t >= tPoints[last])
+        {
+            ApplyPositions(points[last].positions);
+            return;
+        }
+
+        // guard if we ended up on last index before interpolation
+        if (k >= last)
         {
             ApplyPositions(points[last].positions);
             return;
