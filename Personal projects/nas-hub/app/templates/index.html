@@ -18,8 +18,11 @@
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Inter, Segoe UI, system-ui, sans-serif; background: radial-gradient(circle at top, #1a2140 0%, #0f1220 45%, #0d101d 100%); color: var(--text); }
     .wrap { max-width: 1400px; margin: 16px auto 32px; padding: 0 14px; }
-    h1 { margin: 0 0 10px; font-size: 28px; }
+    h1 { margin: 0; font-size: 28px; }
     h2 { margin: 0 0 10px; font-size: 18px; }
+
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin: 0 0 10px; gap:10px; }
+    .theme-toggle { width:auto; padding:8px 12px; }
 
     .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
     .grid-2 { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
@@ -79,8 +82,8 @@
       font-size: 12px;
       line-height: 1.2;
     }
-    .event-title { font-weight: 700; }
-    .event-meta { font-size: 11px; opacity: .95; margin-top: 2px; }
+    .event-title { font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+    .event-meta { font-size: 11px; color: rgba(255,255,255,.92); margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
 
     .pill { display:inline-block; margin:3px 6px 0 0; padding:3px 8px; border-radius:999px; background:#1b2548; border:1px solid #445694; font-size:12px; }
 
@@ -93,11 +96,38 @@
     .events-list button { width: auto; padding: 5px 9px; }
 
     pre { background:#10152a; border:1px solid var(--line); border-radius:8px; padding:8px; color:#b8c8ef; }
+
+    /* Light theme overrides */
+    body[data-theme="light"] {
+      --bg: #f7f8fc;
+      --panel: #ffffff;
+      --text: #1f2a44;
+      --muted: #6e7a99;
+      --line: #dbe2f1;
+      background: var(--bg);
+    }
+    body[data-theme="light"] .card { box-shadow: 0 6px 18px rgba(22,37,74,.06); }
+    body[data-theme="light"] input,
+    body[data-theme="light"] textarea,
+    body[data-theme="light"] select,
+    body[data-theme="light"] button { border-color:#ccd8ef; background:#fdfdff; color:#1f2a44; }
+    body[data-theme="light"] button { background:#e9efff; color:#28407c; }
+    body[data-theme="light"] .week-wrap { background:#fdfefe; }
+    body[data-theme="light"] .week-header .cell { background:#f2f5ff; }
+    body[data-theme="light"] .hour-rail { background:#f8faff; }
+    body[data-theme="light"] .day-track {
+      background: repeating-linear-gradient(to bottom, rgba(130,150,210,0.18) 0, rgba(130,150,210,0.18) 1px, transparent 1px, transparent var(--hour-height));
+    }
+    body[data-theme="light"] .event-title,
+    body[data-theme="light"] .event-meta { color:#fff; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Calendar + Thesis Hub</h1>
+    <div class="topbar">
+      <h1>Calendar + Thesis Hub</h1>
+      <button id="themeToggle" class="theme-toggle" type="button">Switch to Light</button>
+    </div>
 
     <div class="grid-2">
       <div class="card">
@@ -191,7 +221,8 @@ function goToCurrentWeek(){ weekStart=getMonday(new Date()); loadWeek(); }
 function hashHue(str){ let h=0; for(let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h); return Math.abs(h)%360; }
 function eventGradient(cal){
   const hue = hashHue(cal||'calendar');
-  return `linear-gradient(180deg, hsla(${hue},75%,72%,0.95) 0%, hsla(${hue},72%,78%,0.7) 60%, hsla(${hue},72%,84%,0.25) 100%)`;
+  // Darker top for readability + transparent fade downward
+  return `linear-gradient(180deg, hsla(${hue},60%,22%,0.88) 0%, hsla(${hue},65%,36%,0.62) 58%, hsla(${hue},70%,50%,0.24) 100%)`;
 }
 
 async function loadCalendars(){
@@ -411,6 +442,23 @@ async function loadThesisSummary(days){
   document.getElementById('thesisSummary').textContent = JSON.stringify(j,null,2);
 }
 
+function applyTheme(theme){
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('nasHubTheme', theme);
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = theme === 'dark' ? 'Switch to Light' : 'Switch to Dark';
+}
+
+function initTheme(){
+  const saved = localStorage.getItem('nasHubTheme') || 'dark';
+  applyTheme(saved);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const cur = document.body.getAttribute('data-theme') || 'dark';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+}
+
+initTheme();
 loadWeek();
 loadTodayList();
 </script>
