@@ -52,11 +52,9 @@
 
     .week-body { display: grid; grid-template-columns: var(--hour-col) repeat(7, minmax(var(--day-min-width), 1fr)); }
     .hour-rail {
-      height: calc(var(--hour-height) * 16);
       border-right: 1px solid var(--line);
       background: var(--bg);
       display: grid;
-      grid-template-rows: repeat(16, var(--hour-height));
     }
     .hour-mark {
       color: #c0c6d3;
@@ -70,7 +68,7 @@
     }
 
     .day-track {
-      position: relative; height: calc(var(--hour-height) * 16);
+      position: relative;
       border-right: 1px solid var(--line);
       background:
         repeating-linear-gradient(to bottom,
@@ -255,9 +253,11 @@
   </div>
 
 <script>
-const HOUR_START = 6;
-const HOUR_END = 22;
+const DEFAULT_HOUR_START = 6;
+const DEFAULT_HOUR_END = 24; // show through 00:00
 const HOUR_HEIGHT = 56;
+let visibleHourStart = DEFAULT_HOUR_START;
+let visibleHourEnd = DEFAULT_HOUR_END;
 let calendars = [];
 let weekStart = getMonday(new Date());
 let selectedEvent = null;
@@ -303,6 +303,9 @@ async function loadCalendars(){
 }
 
 function buildWeekScaffold(){
+  const totalHours = visibleHourEnd - visibleHourStart;
+  const totalHeight = totalHours * HOUR_HEIGHT;
+
   const grid = document.getElementById('weekGrid');
   grid.innerHTML='';
 
@@ -324,7 +327,9 @@ function buildWeekScaffold(){
 
   const hourRail = document.createElement('div');
   hourRail.className='hour-rail';
-  for(let h=HOUR_START; h<HOUR_END; h++){
+  hourRail.style.height = `${totalHeight}px`;
+  hourRail.style.gridTemplateRows = `repeat(${totalHours}, var(--hour-height))`;
+  for(let h=visibleHourStart; h<visibleHourEnd; h++){
     const m=document.createElement('div');
     m.className='hour-mark';
     m.textContent=`${pad(h)}:00`;
@@ -336,6 +341,19 @@ function buildWeekScaffold(){
     const d=document.createElement('div');
     d.className='day-track';
     d.dataset.day=String(i);
+    d.style.height = `${totalHeight}px`;
+
+    for(let h=0; h<totalHours; h++){
+      const line = document.createElement('div');
+      line.style.position = 'absolute';
+      line.style.left = '0';
+      line.style.right = '0';
+      line.style.top = `${h * HOUR_HEIGHT}px`;
+      line.style.height = '1px';
+      line.style.background = 'rgba(255,255,255,0.07)';
+      d.appendChild(line);
+    }
+
     body.appendChild(d);
   }
   grid.appendChild(body);
@@ -345,7 +363,7 @@ function toLocalDate(x){ return new Date(x); }
 
 function layoutDayEvents(dayEvents){
   // Single continuous block per event (no visual splitting), with overlap lane assignment
-  const minW=HOUR_START*60, maxW=HOUR_END*60;
+  const minW=visibleHourStart*60, maxW=visibleHourEnd*60;
   const items=[];
 
   for(const e of dayEvents){
@@ -434,7 +452,7 @@ function renderWeekEvents(events){
     const segs = layoutDayEvents(byDay[day]);
     const track = tracks[day];
     for(const s of segs){
-      const top=((s.startMin - HOUR_START*60)/60)*HOUR_HEIGHT;
+      const top=((s.startMin - visibleHourStart*60)/60)*HOUR_HEIGHT;
       const height=Math.max(16, ((s.endMin-s.startMin)/60)*HOUR_HEIGHT - 2);
       const widthPct=100/s.cols;
       const leftPct=s.col*widthPct;
@@ -563,7 +581,6 @@ async function deleteModalEvent(){
 async function loadWeek(){
   setStatus('Loading week…');
   await loadCalendars();
-  buildWeekScaffold();
 
   const start=new Date(weekStart);
   const end=new Date(weekStart); end.setDate(end.getDate()+7);
@@ -572,8 +589,20 @@ async function loadWeek(){
   const r=await fetch(`/api/events?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`);
   const j=await r.json();
   const items=j.items||[];
+
+  // Default view 06:00-00:00, but if this week has earlier events, open from earliest hour.
+  let earliestHour = DEFAULT_HOUR_START;
+  for (const ev of items){
+    if (!ev.start?.dateTime) continue;
+    const h = new Date(ev.start.dateTime).getHours();
+    if (h < earliestHour) earliestHour = h;
+  }
+  visibleHourStart = Math.max(0, Math.min(DEFAULT_HOUR_START, earliestHour));
+  visibleHourEnd = DEFAULT_HOUR_END;
+
+  buildWeekScaffold();
   renderWeekEvents(items);
-  setStatus(`Loaded ${items.length} events this week.`);
+  setStatus(`Loaded ${items.length} events this week. Visible hours: ${pad(visibleHourStart)}:00–${pad(visibleHourEnd)}:00`);
 }
 
 async function loadThesisSummary(days){
