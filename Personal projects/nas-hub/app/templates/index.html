@@ -93,15 +93,17 @@
 
     .pill { display:inline-block; margin:3px 6px 0 0; padding:3px 8px; border-radius:999px; background:#141519; border:1px solid #34363e; font-size:12px; }
 
-    .events-list .row {
-      border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 6px 0;
-      display: flex; justify-content: space-between; gap: 8px; align-items: center;
-      background: #101421;
-    }
-    .events-list .meta { color: var(--muted); font-size: 12px; }
-    .events-list button { width: auto; padding: 5px 9px; }
-
     pre { background:#10152a; border:1px solid var(--line); border-radius:8px; padding:8px; color:#b8c8ef; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
+      align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal {
+      width: min(560px, 94vw); background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px;
+    }
+    .modal h3 { margin: 0 0 8px; }
 
     /* Light theme overrides */
     body[data-theme="light"] {
@@ -177,11 +179,24 @@
           <div id="status" class="small">Loading…</div>
         </div>
 
-        <div class="card">
-          <h2>Today events</h2>
-          <button onclick="loadTodayList()">Refresh today</button>
-          <div id="todayList" class="events-list"></div>
+      </div>
+    </div>
+
+    <div id="eventModalBackdrop" class="modal-backdrop">
+      <div class="modal">
+        <h3>Event details</h3>
+        <input id="mTitle" type="text" placeholder="Title" />
+        <textarea id="mDesc" rows="3" placeholder="Description"></textarea>
+        <label>Start</label>
+        <input id="mStart" type="datetime-local" />
+        <label>End</label>
+        <input id="mEnd" type="datetime-local" />
+        <div class="btn-row">
+          <button type="button" onclick="saveModalEvent()">Save changes</button>
+          <button type="button" onclick="deleteModalEvent()">Delete event</button>
+          <button type="button" onclick="closeModal()">Close</button>
         </div>
+        <div id="mInfo" class="small"></div>
       </div>
     </div>
 
@@ -217,6 +232,7 @@ const HOUR_END = 22;
 const HOUR_HEIGHT = 56;
 let calendars = [];
 let weekStart = getMonday(new Date());
+let selectedEvent = null;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -401,10 +417,70 @@ function renderWeekEvents(events){
       el.style.left = `calc(${leftPct}% + 4px)`;
       el.style.width = `calc(${widthPct}% - 8px)`;
       el.style.background = eventGradient(s.cal);
-      el.innerHTML = `<div class="event-title">${s.summary}</div><div class="event-meta">${pad(Math.floor(s.startMin/60))}:${pad(s.startMin%60)}-${pad(Math.floor(s.endMin/60))}:${pad(s.endMin%60)} · ${s.cal}</div>`;
+      el.innerHTML = `<div class="event-title">${s.summary}</div>`;
+      el.title = `${pad(Math.floor(s.startMin/60))}:${pad(s.startMin%60)}-${pad(Math.floor(s.endMin/60))}:${pad(s.endMin%60)} · ${s.cal}`;
+      // attach source event for modal
+      const src = byDay[day].find(x => (x.id||'') === s.id);
+      if (src) {
+        el.style.cursor = 'pointer';
+        el.onclick = () => openEventModal(src);
+      }
       track.appendChild(el);
     }
   }
+}
+
+function toLocalInputValue(dtRaw){
+  if (!dtRaw) return '';
+  const d = new Date(dtRaw);
+  const y=d.getFullYear();
+  const m=pad(d.getMonth()+1);
+  const day=pad(d.getDate());
+  const h=pad(d.getHours());
+  const mi=pad(d.getMinutes());
+  return `${y}-${m}-${day}T${h}:${mi}`;
+}
+
+function openEventModal(ev){
+  selectedEvent = ev;
+  document.getElementById('mTitle').value = ev.summary || '';
+  document.getElementById('mDesc').value = ev.description || '';
+  document.getElementById('mStart').value = toLocalInputValue(ev.start?.dateTime);
+  document.getElementById('mEnd').value = toLocalInputValue(ev.end?.dateTime);
+  document.getElementById('mInfo').textContent = `${ev.calendar} (${ev.calendarId})`;
+  document.getElementById('eventModalBackdrop').style.display = 'flex';
+}
+
+function closeModal(){
+  document.getElementById('eventModalBackdrop').style.display = 'none';
+  selectedEvent = null;
+}
+
+async function saveModalEvent(){
+  if (!selectedEvent) return;
+  const payload = {
+    summary: document.getElementById('mTitle').value.trim(),
+    description: document.getElementById('mDesc').value.trim(),
+    start: `${document.getElementById('mStart').value}:00`,
+    end: `${document.getElementById('mEnd').value}:00`,
+    timeZone: 'Europe/Stockholm'
+  };
+  const r = await fetch(`/api/events/${encodeURIComponent(selectedEvent.calendarId)}/${encodeURIComponent(selectedEvent.id)}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if (!r.ok){ alert(j.detail || 'Update failed'); return; }
+  closeModal();
+  await loadWeek();
+}
+
+async function deleteModalEvent(){
+  if (!selectedEvent) return;
+  if (!confirm('Delete this event?')) return;
+  const r = await fetch(`/api/events/${encodeURIComponent(selectedEvent.calendarId)}/${encodeURIComponent(selectedEvent.id)}`, { method:'DELETE' });
+  if (!r.ok){ alert('Delete failed'); return; }
+  closeModal();
+  await loadWeek();
 }
 
 async function loadWeek(){
@@ -421,30 +497,6 @@ async function loadWeek(){
   const items=j.items||[];
   renderWeekEvents(items);
   setStatus(`Loaded ${items.length} events this week.`);
-}
-
-async function loadTodayList(){
-  const now=new Date();
-  const s=new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const e=new Date(s); e.setDate(e.getDate()+1);
-  const r=await fetch(`/api/events?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`);
-  const j=await r.json();
-  const items=(j.items||[]).sort((a,b)=>(a.start?.dateTime||a.start?.date||'').localeCompare(b.start?.dateTime||b.start?.date||''));
-
-  const box=document.getElementById('todayList'); box.innerHTML='';
-  for(const ev of items){
-    const row=document.createElement('div'); row.className='row';
-    const t=ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : 'All-day';
-    row.innerHTML=`<div><b>${ev.summary}</b><div class="meta">${t} · ${ev.calendar}</div></div>`;
-    const b=document.createElement('button'); b.textContent='Delete';
-    b.onclick=async()=>{
-      if(!confirm('Delete this event?')) return;
-      const rr=await fetch(`/api/events/${encodeURIComponent(ev.calendarId)}/${encodeURIComponent(ev.id)}`, {method:'DELETE'});
-      if(rr.ok){ loadTodayList(); loadWeek(); }
-    };
-    row.appendChild(b);
-    box.appendChild(row);
-  }
 }
 
 async function loadThesisSummary(days){
@@ -473,7 +525,6 @@ function initTheme(){
 
 initTheme();
 loadWeek();
-loadTodayList();
 </script>
 </body>
 </html>

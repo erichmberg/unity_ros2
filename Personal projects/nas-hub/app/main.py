@@ -1,5 +1,6 @@
 import json
 import os
+import urllib.parse
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -128,6 +129,7 @@ def events(start: str, end: str):
                 "calendar": cal_name,
                 "id": e.get("id"),
                 "summary": e.get("summary", "(no title)"),
+                "description": e.get("description", ""),
                 "start": e.get("start", {}),
                 "end": e.get("end", {}),
             })
@@ -183,6 +185,27 @@ def create_event_form(
         return RedirectResponse(url=f"/?created={created.get('id')}", status_code=303)
     except Exception as e:
         return RedirectResponse(url=f"/?error={urllib.parse.quote(str(e))}", status_code=303)
+
+
+@app.put("/api/events/{calendar_id}/{event_id}")
+async def update_event(calendar_id: str, event_id: str, request: Request):
+    body = await request.json()
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+    try:
+        updated = svc.events().patch(
+            calendarId=calendar_id,
+            eventId=event_id,
+            body={
+                "summary": body.get("summary", ""),
+                "description": body.get("description", ""),
+                "start": {"dateTime": body.get("start"), "timeZone": body.get("timeZone", "Europe/Stockholm")},
+                "end": {"dateTime": body.get("end"), "timeZone": body.get("timeZone", "Europe/Stockholm")},
+            },
+        ).execute()
+        return {"ok": True, "id": updated.get("id")}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Update failed: {e}")
 
 
 @app.delete("/api/events/{calendar_id}/{event_id}")
