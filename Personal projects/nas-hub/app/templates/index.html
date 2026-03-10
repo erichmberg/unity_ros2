@@ -18,13 +18,12 @@
   <div class="card">
     <h2>Google Calendar</h2>
     {% if connected %}
-      <p>✅ Connected</p>
+      <p>✅ Connected (token file found)</p>
       <button onclick="loadCalendars()">Load calendars</button>
       <button onclick="loadToday()">Load today events</button>
       <pre id="out"></pre>
     {% else %}
-      <p>Not connected yet.</p>
-      <a href="/auth/google/start"><button>Connect Google</button></a>
+      <p>Not connected yet. Put a valid token file at:<br><code>{{token_file}}</code></p>
     {% endif %}
   </div>
 

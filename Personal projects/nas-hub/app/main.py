@@ -13,12 +13,12 @@ from sqlalchemy import create_engine, String, Float, Text, DateTime, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
 
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
 BASE_URL = os.getenv("BASE_URL", "http://192.168.50.165:3180")
 SESSION_SECRET = os.getenv("SESSION_SECRET", "change-me")
 CLIENT_SECRET_FILE = os.getenv("GOOGLE_CLIENT_SECRET_FILE", "/app/secrets/client.json")
+TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE", "/app/secrets/token.json")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////app/data/app.db")
 
 SCOPES = [
@@ -71,51 +71,24 @@ def set_setting(key: str, value: str):
 
 
 def get_google_creds() -> Credentials:
-    token_json = get_setting("google_token")
-    if not token_json:
-        raise HTTPException(status_code=401, detail="Google not connected")
-    info = json.loads(token_json)
-    creds = Credentials.from_authorized_user_info(info, SCOPES)
+    if not os.path.exists(TOKEN_FILE):
+        raise HTTPException(status_code=401, detail=f"Google token file missing: {TOKEN_FILE}")
+    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     if creds.expired and creds.refresh_token:
         from google.auth.transport.requests import Request as GRequest
 
         creds.refresh(GRequest())
-        set_setting("google_token", creds.to_json())
+        with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+            f.write(creds.to_json())
     return creds
 
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    connected = get_setting("google_token") is not None
+    connected = os.path.exists(TOKEN_FILE)
     with Session(engine) as db:
         logs = db.scalars(select(ThesisLog).order_by(ThesisLog.started_at.desc()).limit(20)).all()
-    return templates.TemplateResponse("index.html", {"request": request, "connected": connected, "logs": logs, "base_url": BASE_URL})
-
-
-@app.get("/auth/google/start")
-def auth_google_start(request: Request):
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRET_FILE,
-        scopes=SCOPES,
-        redirect_uri=f"{BASE_URL}/auth/google/callback",
-    )
-    auth_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true", prompt="consent")
-    request.session["oauth_state"] = state
-    return RedirectResponse(auth_url)
-
-
-@app.get("/auth/google/callback")
-def auth_google_callback(request: Request):
-    state = request.session.get("oauth_state")
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRET_FILE,
-        scopes=SCOPES,
-        state=state,
-        redirect_uri=f"{BASE_URL}/auth/google/callback",
-    )
-    flow.fetch_token(authorization_response=str(request.url))
-    set_setting("google_token", flow.credentials.to_json())
-    return RedirectResponse("/")
+    return templates.TemplateResponse("index.html", {"request": request, "connected": connected, "logs": logs, "base_url": BASE_URL, "token_file": TOKEN_FILE})
 
 
 @app.get("/api/calendars")
