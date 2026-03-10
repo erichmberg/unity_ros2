@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NAS Calendar + Thesis Hub</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+    input, textarea, select, button { padding: .5rem; margin: .25rem 0; width: 100%; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Calendar + Thesis Hub</h1>
+
+  <div class="card">
+    <h2>Google Calendar</h2>
+    {% if connected %}
+      <p>✅ Connected</p>
+      <button onclick="loadCalendars()">Load calendars</button>
+      <button onclick="loadToday()">Load today events</button>
+      <pre id="out"></pre>
+    {% else %}
+      <p>Not connected yet.</p>
+      <a href="/auth/google/start"><button>Connect Google</button></a>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Add thesis log</h2>
+    <form method="post" action="/api/thesis-log">
+      <label>Started at</label>
+      <input type="datetime-local" name="started_at" required>
+      <label>Hours</label>
+      <input type="number" step="0.25" name="hours" required>
+      <label>Summary</label>
+      <input type="text" name="summary" required>
+      <label>Details</label>
+      <textarea name="details" rows="3"></textarea>
+      <button type="submit">Save log</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Recent thesis logs</h2>
+    {% for l in logs %}
+      <p><b>{{l.started_at}}</b> — {{l.hours}}h — {{l.summary}}</p>
+      {% if l.details %}<p>{{l.details}}</p>{% endif %}
+      <hr/>
+    {% endfor %}
+  </div>
+
+<script>
+async function loadCalendars(){
+  const r = await fetch('/api/calendars');
+  const j = await r.json();
+  document.getElementById('out').textContent = JSON.stringify(j, null, 2);
+}
+async function loadToday(){
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(start); end.setDate(end.getDate()+1);
+  const r = await fetch(`/api/events?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`);
+  const j = await r.json();
+  document.getElementById('out').textContent = JSON.stringify(j, null, 2);
+}
+</script>
+</body>
+</html>
