@@ -23,6 +23,7 @@
 
     .topbar { display:flex; justify-content:space-between; align-items:center; margin: 0 0 10px; gap:10px; }
     .theme-toggle { width:auto; padding:8px 12px; }
+    .plus-btn { width:auto; padding:8px 12px; font-size:18px; line-height:1; }
 
     .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
     .grid-2 { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
@@ -89,6 +90,16 @@
       font-size: 12px;
       line-height: 1.2;
     }
+    .drag-create {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      border-radius: 8px;
+      border: 1px dashed rgba(255,255,255,.55);
+      background: rgba(120,140,180,.18);
+      pointer-events: none;
+      z-index: 25;
+    }
     .event-title { font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
     .event-meta { font-size: 11px; color: rgba(255,255,255,.92); margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
 
@@ -147,7 +158,10 @@
   <div class="wrap">
     <div class="topbar">
       <h1>Calendar + Thesis Hub</h1>
-      <button id="themeToggle" class="theme-toggle" type="button">Switch to Light</button>
+      <div class="btn-row">
+        <button id="quickAddBtn" class="plus-btn" type="button" onclick="openCreateModal()">＋</button>
+        <button id="themeToggle" class="theme-toggle" type="button">Switch to Light</button>
+      </div>
     </div>
 
     <div class="grid-2">
@@ -175,23 +189,10 @@
 
       <div>
         <div class="card">
-          <h2>Create calendar event</h2>
-          <form method="post" action="/events/create">
-            <label>Calendar</label>
-            <select id="eventCalendar" name="calendarId" required></select>
-            <label>Title</label>
-            <input name="summary" type="text" required />
-            <label>Description</label>
-            <textarea name="description" rows="2"></textarea>
-            <label>Start</label>
-            <input name="start_local" type="datetime-local" required />
-            <label>End</label>
-            <input name="end_local" type="datetime-local" required />
-            <button type="submit">Create event</button>
-          </form>
+          <h2>Controls</h2>
+          <p class="small">Use <b>＋</b> (top-right) to add events, or drag on the calendar to create quickly.</p>
           <div id="status" class="small">Loading…</div>
         </div>
-
       </div>
     </div>
 
@@ -220,6 +221,28 @@
             <button type="button" onclick="saveModalEvent()">Save changes</button>
             <button type="button" onclick="deleteModalEvent()">Delete event</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="createModalBackdrop" class="modal-backdrop" onclick="closeCreateModal()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <h3 style="margin:0;">Create event</h3>
+        </div>
+        <label>Calendar</label>
+        <select id="cCalendar"></select>
+        <label>Title</label>
+        <input id="cTitle" type="text" placeholder="Event title" />
+        <label>Description</label>
+        <textarea id="cDesc" rows="3" placeholder="Description"></textarea>
+        <label>Start</label>
+        <input id="cStart" type="datetime-local" />
+        <label>End</label>
+        <input id="cEnd" type="datetime-local" />
+        <div class="btn-row">
+          <button type="button" onclick="saveCreateModalEvent()">Create event</button>
+          <button type="button" onclick="closeCreateModal()">Cancel</button>
         </div>
       </div>
     </div>
@@ -262,6 +285,7 @@ let calendars = [];
 let weekStart = getMonday(new Date());
 let selectedEvent = null;
 let modalEditMode = false;
+let dragState = null;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -300,6 +324,65 @@ async function loadCalendars(){
     p.textContent=c.summary;
     pills.appendChild(p);
   }
+}
+
+function roundToQuarter(mins){
+  return Math.round(mins / 15) * 15;
+}
+
+function minutesToInput(dayDate, mins){
+  const d = new Date(dayDate);
+  d.setHours(0,0,0,0);
+  d.setMinutes(mins);
+  return toLocalInputValue(d.toISOString());
+}
+
+function openCreateModal(prefill = null){
+  const sel = document.getElementById('cCalendar');
+  sel.innerHTML = '';
+  for (const c of calendars){
+    const o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = c.summary;
+    sel.appendChild(o);
+  }
+
+  if (prefill){
+    document.getElementById('cStart').value = prefill.start;
+    document.getElementById('cEnd').value = prefill.end;
+  } else {
+    const now = new Date();
+    const next = new Date(now.getTime() + 60*60*1000);
+    document.getElementById('cStart').value = toLocalInputValue(now.toISOString());
+    document.getElementById('cEnd').value = toLocalInputValue(next.toISOString());
+  }
+  document.getElementById('cTitle').value = '';
+  document.getElementById('cDesc').value = '';
+  document.getElementById('createModalBackdrop').style.display = 'flex';
+}
+
+function closeCreateModal(){
+  document.getElementById('createModalBackdrop').style.display = 'none';
+}
+
+async function saveCreateModalEvent(){
+  const payload = {
+    calendarId: document.getElementById('cCalendar').value,
+    summary: document.getElementById('cTitle').value.trim() || '(no title)',
+    description: document.getElementById('cDesc').value.trim(),
+    start: `${document.getElementById('cStart').value}:00`,
+    end: `${document.getElementById('cEnd').value}:00`,
+    timeZone: 'Europe/Stockholm'
+  };
+  const r = await fetch('/api/events', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if (!r.ok){ alert(j.detail || 'Create failed'); return; }
+  closeCreateModal();
+  await loadWeek();
 }
 
 function buildWeekScaffold(){
@@ -353,6 +436,19 @@ function buildWeekScaffold(){
       line.style.background = 'rgba(255,255,255,0.07)';
       d.appendChild(line);
     }
+
+    d.addEventListener('mousedown', (ev) => {
+      if (ev.button !== 0) return;
+      const rect = d.getBoundingClientRect();
+      const y = ev.clientY - rect.top;
+      const mins = visibleHourStart*60 + (y / HOUR_HEIGHT) * 60;
+      const snapped = roundToQuarter(Math.max(visibleHourStart*60, Math.min(visibleHourEnd*60, mins)));
+      const overlay = document.createElement('div');
+      overlay.className = 'drag-create';
+      d.appendChild(overlay);
+      dragState = { day:i, track:d, startMin:snapped, endMin:snapped, overlay };
+      ev.preventDefault();
+    });
 
     body.appendChild(d);
   }
@@ -577,6 +673,42 @@ async function deleteModalEvent(){
   closeModal();
   await loadWeek();
 }
+
+function updateDragOverlay(){
+  if (!dragState) return;
+  const a = Math.min(dragState.startMin, dragState.endMin);
+  const b = Math.max(dragState.startMin, dragState.endMin);
+  const top = ((a - visibleHourStart*60) / 60) * HOUR_HEIGHT;
+  const height = Math.max(8, ((b - a) / 60) * HOUR_HEIGHT);
+  dragState.overlay.style.top = `${top}px`;
+  dragState.overlay.style.height = `${height}px`;
+}
+
+window.addEventListener('mousemove', (ev) => {
+  if (!dragState) return;
+  const rect = dragState.track.getBoundingClientRect();
+  const y = ev.clientY - rect.top;
+  const mins = visibleHourStart*60 + (y / HOUR_HEIGHT) * 60;
+  dragState.endMin = roundToQuarter(Math.max(visibleHourStart*60, Math.min(visibleHourEnd*60, mins)));
+  updateDragOverlay();
+});
+
+window.addEventListener('mouseup', () => {
+  if (!dragState) return;
+  const a = Math.min(dragState.startMin, dragState.endMin);
+  const b = Math.max(dragState.startMin, dragState.endMin);
+  const dayDate = new Date(weekStart);
+  dayDate.setDate(dayDate.getDate() + dragState.day);
+
+  dragState.overlay.remove();
+  const tooSmall = Math.abs(b - a) < 15;
+  const endMin = tooSmall ? a + 60 : b;
+  openCreateModal({
+    start: minutesToInput(dayDate, a),
+    end: minutesToInput(dayDate, endMin),
+  });
+  dragState = null;
+});
 
 async function loadWeek(){
   setStatus('Loading week…');
