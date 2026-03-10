@@ -117,7 +117,25 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-  <!-- links: main serial chain -->
+  <!-- links: world + rail + main serial chain -->
+  <link name="world"/>
+
+  <link name="rail_base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.4 0.08 0.08"/>
+      </geometry>
+      <material name="ur_dark_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.4 0.08 0.08"/>
+      </geometry>
+    </collision>
+  </link>
+
   <link name="base_link"/>
   <link name="base_link_inertia">
     <visual>
@@ -260,7 +278,22 @@
       <inertia ixx="0.00014434577559500002" ixy="0.0" ixz="0.0" iyy="0.00014434577559500002" iyz="0.0" izz="0.00020452500000000002"/>
     </inertial>
   </link>
-  <!-- joints: main serial chain -->
+  <!-- joints: world + rail + main serial chain -->
+  <joint name="world_to_rail_base" type="fixed">
+    <parent link="world"/>
+    <child link="rail_base_link"/>
+    <origin xyz="0 0.02 1.6" rpy="1.5707963267948966 0 3.141592653589793"/>
+  </joint>
+
+  <joint name="rail_joint" type="prismatic">
+    <parent link="rail_base_link"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.04035" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.0" upper="1.0" effort="2000.0" velocity="0.4"/>
+    <dynamics damping="10.0" friction="1.0"/>
+  </joint>
+
   <joint name="base_link-base_link_inertia" type="fixed">
     <parent link="base_link"/>
     <child link="base_link_inertia"/>

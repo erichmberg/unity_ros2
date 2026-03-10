@@ -13,6 +13,7 @@
 /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/upperarm.stl
 /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/base.stl
 /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/wrist1.stl
+/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/environment/RITA CELL.stl
 /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl
 /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/README.md
 /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/gripper_base_with_partial_fingers_light.stl
