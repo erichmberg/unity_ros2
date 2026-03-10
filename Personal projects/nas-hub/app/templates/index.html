@@ -311,10 +311,15 @@ async function loadCalendars(){
   const j = await r.json();
   calendars = j.items || [];
 
-  const sel = document.getElementById('eventCalendar');
-  sel.innerHTML='';
-  for(const c of calendars){
-    const o=document.createElement('option'); o.value=c.id; o.textContent=c.summary; sel.appendChild(o);
+  const sel = document.getElementById('cCalendar');
+  if (sel){
+    sel.innerHTML='';
+    for(const c of calendars){
+      const o=document.createElement('option');
+      o.value=c.id;
+      o.textContent=c.summary;
+      sel.appendChild(o);
+    }
   }
 
   const pills = document.getElementById('calendarPills');
