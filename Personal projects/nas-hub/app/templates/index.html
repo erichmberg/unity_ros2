@@ -59,11 +59,14 @@
       grid-template-rows: repeat(16, var(--hour-height));
     }
     .hour-mark {
-      color: #9ea4b2;
+      color: #c0c6d3;
       font-size: 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
       padding: 2px 6px;
       text-align: right;
+      line-height: calc(var(--hour-height) - 4px);
+      height: var(--hour-height);
+      font-weight: 600;
     }
 
     .day-track {
@@ -104,6 +107,18 @@
       border-radius: 12px; padding: 12px;
     }
     .modal h3 { margin: 0 0 8px; }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .icon-btn { width:auto; padding:6px 10px; }
+    .view-field { margin: 6px 0; padding: 8px; border:1px solid var(--line); border-radius:8px; background: rgba(255,255,255,0.02); }
+    .hidden { display:none !important; }
+
+    .hover-tip {
+      position: fixed; z-index: 60; pointer-events: none;
+      max-width: 320px; padding: 8px 10px; border-radius: 8px;
+      background: rgba(16,18,22,.95); color:#f4f6fb; border:1px solid #3b3f4b;
+      font-size: 12px; line-height: 1.3; display:none;
+      box-shadow: 0 8px 22px rgba(0,0,0,.35);
+    }
 
     /* Light theme overrides */
     body[data-theme="light"] {
@@ -182,23 +197,36 @@
       </div>
     </div>
 
-    <div id="eventModalBackdrop" class="modal-backdrop">
-      <div class="modal">
-        <h3>Event details</h3>
-        <input id="mTitle" type="text" placeholder="Title" />
-        <textarea id="mDesc" rows="3" placeholder="Description"></textarea>
-        <label>Start</label>
-        <input id="mStart" type="datetime-local" />
-        <label>End</label>
-        <input id="mEnd" type="datetime-local" />
-        <div class="btn-row">
-          <button type="button" onclick="saveModalEvent()">Save changes</button>
-          <button type="button" onclick="deleteModalEvent()">Delete event</button>
-          <button type="button" onclick="closeModal()">Close</button>
+    <div id="eventModalBackdrop" class="modal-backdrop" onclick="closeModal()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <h3 style="margin:0;">Event details</h3>
+          <button id="mGearBtn" class="icon-btn" type="button" onclick="toggleEditMode()">⚙️ Edit</button>
         </div>
-        <div id="mInfo" class="small"></div>
+
+        <div id="mViewMode">
+          <div class="view-field"><b id="mViewTitle"></b></div>
+          <div class="view-field" id="mViewTime"></div>
+          <div class="view-field" id="mViewDesc"></div>
+          <div id="mInfo" class="small"></div>
+        </div>
+
+        <div id="mEditMode" class="hidden">
+          <input id="mTitle" type="text" placeholder="Title" />
+          <textarea id="mDesc" rows="3" placeholder="Description"></textarea>
+          <label>Start</label>
+          <input id="mStart" type="datetime-local" />
+          <label>End</label>
+          <input id="mEnd" type="datetime-local" />
+          <div class="btn-row">
+            <button type="button" onclick="saveModalEvent()">Save changes</button>
+            <button type="button" onclick="deleteModalEvent()">Delete event</button>
+          </div>
+        </div>
       </div>
     </div>
+
+    <div id="hoverTip" class="hover-tip"></div>
 
     <div class="grid-2b">
       <div class="card">
@@ -233,6 +261,7 @@ const HOUR_HEIGHT = 56;
 let calendars = [];
 let weekStart = getMonday(new Date());
 let selectedEvent = null;
+let modalEditMode = false;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -418,12 +447,14 @@ function renderWeekEvents(events){
       el.style.width = `calc(${widthPct}% - 8px)`;
       el.style.background = eventGradient(s.cal);
       el.innerHTML = `<div class="event-title">${s.summary}</div>`;
-      el.title = `${pad(Math.floor(s.startMin/60))}:${pad(s.startMin%60)}-${pad(Math.floor(s.endMin/60))}:${pad(s.endMin%60)} · ${s.cal}`;
-      // attach source event for modal
+      // attach source event for modal / preview
       const src = byDay[day].find(x => (x.id||'') === s.id);
       if (src) {
         el.style.cursor = 'pointer';
         el.onclick = () => openEventModal(src);
+        el.onmouseenter = (ev) => showHoverTip(ev, src);
+        el.onmousemove = (ev) => moveHoverTip(ev);
+        el.onmouseleave = () => hideHoverTip();
       }
       track.appendChild(el);
     }
@@ -443,17 +474,63 @@ function toLocalInputValue(dtRaw){
 
 function openEventModal(ev){
   selectedEvent = ev;
+  modalEditMode = false;
+
+  const s = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleString('sv-SE', {hour12:false}) : 'All-day';
+  const e = ev.end?.dateTime ? new Date(ev.end.dateTime).toLocaleString('sv-SE', {hour12:false}) : '';
+
+  document.getElementById('mViewTitle').textContent = ev.summary || '(no title)';
+  document.getElementById('mViewTime').textContent = `${s}${e ? ' → ' + e : ''}`;
+  document.getElementById('mViewDesc').textContent = ev.description || '(No description)';
+  document.getElementById('mInfo').textContent = `${ev.calendar} (${ev.calendarId})`;
+
   document.getElementById('mTitle').value = ev.summary || '';
   document.getElementById('mDesc').value = ev.description || '';
   document.getElementById('mStart').value = toLocalInputValue(ev.start?.dateTime);
   document.getElementById('mEnd').value = toLocalInputValue(ev.end?.dateTime);
-  document.getElementById('mInfo').textContent = `${ev.calendar} (${ev.calendarId})`;
+
+  setModalMode(false);
   document.getElementById('eventModalBackdrop').style.display = 'flex';
+}
+
+function setModalMode(edit){
+  modalEditMode = edit;
+  document.getElementById('mViewMode').classList.toggle('hidden', edit);
+  document.getElementById('mEditMode').classList.toggle('hidden', !edit);
+  document.getElementById('mGearBtn').textContent = edit ? '👁️ View' : '⚙️ Edit';
+}
+
+function toggleEditMode(){
+  setModalMode(!modalEditMode);
 }
 
 function closeModal(){
   document.getElementById('eventModalBackdrop').style.display = 'none';
   selectedEvent = null;
+  hideHoverTip();
+}
+
+function showHoverTip(ev, item){
+  const tip = document.getElementById('hoverTip');
+  const desc = (item.description || '').trim();
+  const preview = desc.length > 180 ? desc.slice(0, 180) + '…' : (desc || '(No description)');
+  const s = item.start?.dateTime ? new Date(item.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : 'All-day';
+  const e = item.end?.dateTime ? new Date(item.end.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+  tip.innerHTML = `<b>${item.summary || '(no title)'}</b><br>${s}${e ? '–'+e : ''}<br>${preview}`;
+  tip.style.display = 'block';
+  moveHoverTip(ev);
+}
+
+function moveHoverTip(ev){
+  const tip = document.getElementById('hoverTip');
+  if (!tip || tip.style.display !== 'block') return;
+  tip.style.left = (ev.clientX + 14) + 'px';
+  tip.style.top = (ev.clientY + 14) + 'px';
+}
+
+function hideHoverTip(){
+  const tip = document.getElementById('hoverTip');
+  if (tip) tip.style.display = 'none';
 }
 
 async function saveModalEvent(){
