@@ -7,8 +7,8 @@ planning_scene_monitor_options:
   monitored_planning_scene_topic: /move_group/monitored_planning_scene
   wait_for_initial_state_timeout: 10.0
 
-planning_pipelines: [ompl, chomp]
-default_planning_pipeline: ompl
+planning_pipelines: [chomp, ompl]
+default_planning_pipeline: chomp
 
 trajectory_execution:
   allowed_execution_duration_scaling: 1.2
