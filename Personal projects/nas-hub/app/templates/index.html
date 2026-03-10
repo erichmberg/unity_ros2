@@ -16,7 +16,7 @@
       --day-min-width: 150px;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Inter, Segoe UI, system-ui, sans-serif; background: radial-gradient(circle at top, #1a2140 0%, #0f1220 45%, #0d101d 100%); color: var(--text); }
+    body { margin: 0; font-family: Inter, Segoe UI, system-ui, sans-serif; background: linear-gradient(180deg, #050607 0%, #111317 100%); color: var(--text); }
     .wrap { max-width: 1400px; margin: 16px auto 32px; padding: 0 14px; }
     h1 { margin: 0; font-size: 28px; }
     h2 { margin: 0 0 10px; font-size: 18px; }
@@ -119,7 +119,7 @@
       background: repeating-linear-gradient(to bottom, rgba(130,150,210,0.18) 0, rgba(130,150,210,0.18) 1px, transparent 1px, transparent var(--hour-height));
     }
     body[data-theme="light"] .event-title,
-    body[data-theme="light"] .event-meta { color:#fff; }
+    body[data-theme="light"] .event-meta { color:#111827; text-shadow:none; }
   </style>
 </head>
 <body>
@@ -221,8 +221,13 @@ function goToCurrentWeek(){ weekStart=getMonday(new Date()); loadWeek(); }
 function hashHue(str){ let h=0; for(let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h); return Math.abs(h)%360; }
 function eventGradient(cal){
   const hue = hashHue(cal||'calendar');
-  // Darker top for readability + transparent fade downward
-  return `linear-gradient(180deg, hsla(${hue},60%,22%,0.88) 0%, hsla(${hue},65%,36%,0.62) 58%, hsla(${hue},70%,50%,0.24) 100%)`;
+  const theme = document.body.getAttribute('data-theme') || 'dark';
+  if (theme === 'light') {
+    // Light mode: darker text support with soft pastel block
+    return `linear-gradient(180deg, hsla(${hue},70%,78%,0.95) 0%, hsla(${hue},72%,84%,0.72) 58%, hsla(${hue},74%,90%,0.28) 100%)`;
+  }
+  // Dark mode: near-black to dark gray style with subtle calendar tint
+  return `linear-gradient(180deg, hsla(${hue},28%,9%,0.96) 0%, hsla(${hue},24%,16%,0.82) 55%, hsla(${hue},36%,28%,0.35) 100%)`;
 }
 
 async function loadCalendars(){
@@ -447,6 +452,8 @@ function applyTheme(theme){
   localStorage.setItem('nasHubTheme', theme);
   const btn = document.getElementById('themeToggle');
   btn.textContent = theme === 'dark' ? 'Switch to Light' : 'Switch to Dark';
+  // Repaint event gradients/text for new theme
+  if (typeof loadWeek === 'function') loadWeek();
 }
 
 function initTheme(){
