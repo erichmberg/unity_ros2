@@ -8,180 +8,91 @@
     :root {
       --bg: #0f1220;
       --panel: #161b2e;
-      --panel-2: #1d2440;
       --text: #eaf0ff;
       --muted: #9fb0d8;
       --line: #2b345a;
-      --accent: #7aa2ff;
-      --hour-col: 64px;
-      --day-col-min: 150px;
+      --hour-col: 72px;
       --hour-height: 56px;
+      --day-min-width: 150px;
     }
-
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, Segoe UI, system-ui, -apple-system, sans-serif;
-      background: radial-gradient(circle at top, #171d33 0%, #0f1220 45%, #0d1020 100%);
-      color: var(--text);
-    }
-
-    .wrap { max-width: 1380px; margin: 20px auto 40px; padding: 0 16px; }
-    h1 { margin: 0 0 14px; font-size: 28px; }
+    body { margin: 0; font-family: Inter, Segoe UI, system-ui, sans-serif; background: #0f1220; color: var(--text); }
+    .wrap { max-width: 1400px; margin: 16px auto 32px; padding: 0 14px; }
+    h1 { margin: 0 0 10px; font-size: 28px; }
     h2 { margin: 0 0 10px; font-size: 18px; }
-    .small { color: var(--muted); font-size: 13px; }
 
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 14px;
-      backdrop-filter: blur(2px);
-    }
-
-    .grid-2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
-    .grid-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { background: #161b2e; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .grid-2 { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
+    .grid-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 980px){ .grid-2, .grid-2b { grid-template-columns: 1fr; } }
 
     input, textarea, select, button {
-      width: 100%;
-      border: 1px solid #34406d;
-      background: #11162a;
-      color: var(--text);
-      border-radius: 8px;
-      padding: 9px 10px;
-      margin: 6px 0;
-      font-size: 14px;
+      width: 100%; border: 1px solid #334173; background: #11162a; color: var(--text);
+      border-radius: 8px; padding: 9px 10px; margin: 6px 0; font-size: 14px;
     }
-    button {
-      cursor: pointer;
-      background: linear-gradient(180deg, #2a3a70, #22305b);
-      border-color: #3a4e90;
-      font-weight: 600;
-    }
+    button { cursor: pointer; background: #253567; font-weight: 600; }
     button:hover { filter: brightness(1.08); }
-    .btn-row { display: flex; gap: 8px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn-row button { width: auto; }
+    .small { color: var(--muted); font-size: 13px; }
 
-    .status { margin-top: 8px; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+    .week-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .week-wrap { border: 1px solid var(--line); border-radius: 10px; overflow: auto; background: #10152a; }
+    .week-grid { min-width: 1050px; }
 
-    .week-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      gap: 10px;
-      flex-wrap: wrap;
+    .week-header { display: grid; grid-template-columns: var(--hour-col) repeat(7, minmax(var(--day-min-width), 1fr)); }
+    .week-header .cell {
+      border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      background: #151d38; text-align: center; padding: 8px 6px; color: var(--muted); font-size: 12px;
+    }
+    .week-header .cell b { display:block; color: var(--text); font-size: 14px; text-transform: capitalize; }
+
+    .week-body { display: grid; grid-template-columns: var(--hour-col) repeat(7, minmax(var(--day-min-width), 1fr)); }
+    .hour-rail {
+      position: relative; height: calc(var(--hour-height) * 16);
+      border-right: 1px solid var(--line); background: #11172d;
+    }
+    .hour-mark {
+      position: absolute; right: 6px; transform: translateY(-50%);
+      color: #7f90be; font-size: 12px;
     }
 
-    .calendar-board {
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #10152a;
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: var(--hour-col) repeat(7, minmax(var(--day-col-min), 1fr));
-      min-width: 1000px;
-    }
-
-    .header-cell {
-      position: sticky;
-      top: 0;
-      z-index: 4;
-      background: #151d38;
-      border-bottom: 1px solid var(--line);
+    .day-track {
+      position: relative; height: calc(var(--hour-height) * 16);
       border-right: 1px solid var(--line);
-      padding: 10px 8px;
-      font-size: 13px;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .header-cell b { display: block; color: var(--text); font-size: 14px; }
-
-    .hour-cell {
-      height: var(--hour-height);
-      border-right: 1px solid var(--line);
-      border-bottom: 1px solid rgba(62, 76, 125, .35);
-      color: #7f90be;
-      font-size: 12px;
-      padding: 2px 6px;
-      text-align: right;
-    }
-
-    .day-column {
-      position: relative;
-      border-right: 1px solid var(--line);
-      border-bottom: 1px solid rgba(62, 76, 125, .35);
-      height: calc(var(--hour-height) * 16);
       background:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,0.03) 0,
-          rgba(255,255,255,0.03) 1px,
+        repeating-linear-gradient(to bottom,
+          rgba(255,255,255,0.05) 0,
+          rgba(255,255,255,0.05) 1px,
           transparent 1px,
           transparent var(--hour-height)
         );
     }
 
-    .event-block {
+    .event-seg {
       position: absolute;
-      left: 6px;
-      right: 6px;
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,.25);
-      padding: 6px 7px;
+      border: 1px solid rgba(255,255,255,.28);
+      padding: 5px 6px;
       overflow: hidden;
-      box-shadow: 0 6px 18px rgba(0,0,0,.2);
-      backdrop-filter: blur(1.5px);
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
       font-size: 12px;
-      line-height: 1.25;
+      line-height: 1.2;
     }
-
     .event-title { font-weight: 700; }
-    .event-meta { opacity: .95; font-size: 11px; margin-top: 2px; }
+    .event-meta { font-size: 11px; opacity: .95; margin-top: 2px; }
 
-    .pill {
-      display: inline-block;
-      padding: 3px 7px;
-      border-radius: 999px;
-      border: 1px solid #405088;
-      background: #182349;
-      color: #c9d6ff;
-      font-size: 12px;
-      margin-right: 6px;
-      margin-bottom: 5px;
-    }
+    .pill { display:inline-block; margin:3px 6px 0 0; padding:3px 8px; border-radius:999px; background:#1b2548; border:1px solid #445694; font-size:12px; }
 
     .events-list .row {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 8px;
-      margin-bottom: 6px;
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      align-items: center;
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 6px 0;
+      display: flex; justify-content: space-between; gap: 8px; align-items: center;
       background: #121935;
     }
     .events-list .meta { color: var(--muted); font-size: 12px; }
     .events-list button { width: auto; padding: 5px 9px; }
 
-    pre {
-      background: #10152a;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      color: #b8c8ef;
-      padding: 8px;
-      overflow-x: auto;
-    }
-
-    @media (max-width: 980px) {
-      .grid-2, .grid-2b { grid-template-columns: 1fr; }
-    }
+    pre { background:#10152a; border:1px solid var(--line); border-radius:8px; padding:8px; color:#b8c8ef; }
   </style>
 </head>
 <body>
@@ -191,7 +102,7 @@
     <div class="grid-2">
       <div class="card">
         <div class="week-head">
-          <h2>Weekly calendar view (Mon → Sun, 24h)</h2>
+          <h2>Weekly calendar (Monday start, 24h)</h2>
           <div class="btn-row">
             <button onclick="shiftWeek(-7)">← Previous</button>
             <button onclick="goToCurrentWeek()">Today</button>
@@ -201,12 +112,12 @@
         </div>
         <div id="weekLabel" class="small"></div>
 
-        <div class="calendar-board" style="margin-top:8px;">
-          <div id="calendarGrid" class="calendar-grid"></div>
+        <div class="week-wrap" style="margin-top:8px;">
+          <div id="weekGrid" class="week-grid"></div>
         </div>
 
         <div style="margin-top:10px;">
-          <h2 style="font-size:16px; margin-bottom:6px;">Calendars loaded</h2>
+          <h2 style="font-size:16px; margin-bottom:6px;">Calendars</h2>
           <div id="calendarPills"></div>
         </div>
       </div>
@@ -218,23 +129,22 @@
             <label>Calendar</label>
             <select id="eventCalendar" name="calendarId" required></select>
             <label>Title</label>
-            <input id="eventTitle" name="summary" type="text" placeholder="Meeting" required />
+            <input name="summary" type="text" required />
             <label>Description</label>
-            <textarea id="eventDesc" name="description" rows="2" placeholder="Optional"></textarea>
+            <textarea name="description" rows="2"></textarea>
             <label>Start</label>
-            <input id="eventStart" name="start_local" type="datetime-local" required />
+            <input name="start_local" type="datetime-local" required />
             <label>End</label>
-            <input id="eventEnd" name="end_local" type="datetime-local" required />
+            <input name="end_local" type="datetime-local" required />
             <button type="submit">Create event</button>
           </form>
-          <p class="small">Timezone: Europe/Stockholm · 24-hour format</p>
-          <div id="status" class="status">Loading…</div>
+          <div id="status" class="small">Loading…</div>
         </div>
 
         <div class="card">
-          <h2>Today events (list)</h2>
-          <button onclick="loadTodayList()">Refresh today list</button>
-          <div id="todayList" class="events-list" style="margin-top:8px;"></div>
+          <h2>Today events</h2>
+          <button onclick="loadTodayList()">Refresh today</button>
+          <div id="todayList" class="events-list"></div>
         </div>
       </div>
     </div>
@@ -254,7 +164,6 @@
           <button type="submit">Save log</button>
         </form>
       </div>
-
       <div class="card">
         <h2>Thesis summary</h2>
         <div class="btn-row">
@@ -264,66 +173,25 @@
         <pre id="thesisSummary">Click a button to load summary.</pre>
       </div>
     </div>
-
-    <div class="card">
-      <h2>Recent thesis logs</h2>
-      {% for l in logs %}
-        <p><b>{{l.started_at}}</b> — {{l.hours}}h — {{l.summary}}</p>
-        {% if l.details %}<p>{{l.details}}</p>{% endif %}
-        <hr/>
-      {% endfor %}
-    </div>
   </div>
 
 <script>
-const HOUR_START = 6;   // visible day starts 06:00
-const HOUR_END = 22;    // visible day ends 22:00
+const HOUR_START = 6;
+const HOUR_END = 22;
 const HOUR_HEIGHT = 56;
 let calendars = [];
 let weekStart = getMonday(new Date());
 
-function setStatus(msg){ document.getElementById('status').textContent = msg; }
-
-function getMonday(d){
-  const date = new Date(d);
-  const day = (date.getDay() + 6) % 7; // monday=0
-  date.setDate(date.getDate() - day);
-  date.setHours(0,0,0,0);
-  return date;
-}
-
-function shiftWeek(days){
-  weekStart.setDate(weekStart.getDate() + days);
-  loadWeek();
-}
-
-function goToCurrentWeek(){
-  weekStart = getMonday(new Date());
-  loadWeek();
-}
-
-function fmtDate(d){
-  return d.toLocaleDateString('sv-SE', { weekday: 'short', day: '2-digit', month: '2-digit' });
-}
-
-function isoForApi(d){ return d.toISOString(); }
-
-function hashColor(str){
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
-  const hue = Math.abs(h) % 360;
-  return `hsl(${hue}, 80%, 58%)`;
-}
-
-function eventStyle(calendarName){
-  const base = hashColor(calendarName || 'calendar');
-  return `background: linear-gradient(90deg, ${base}DD 0%, ${base}AA 55%, ${base}30 100%);`;
-}
-
+function setStatus(t){ document.getElementById('status').textContent = t; }
 function pad(n){ return String(n).padStart(2, '0'); }
+function getMonday(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+function shiftWeek(days){ weekStart.setDate(weekStart.getDate()+days); loadWeek(); }
+function goToCurrentWeek(){ weekStart=getMonday(new Date()); loadWeek(); }
 
-function localHHMM(date){
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+function hashHue(str){ let h=0; for(let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h); return Math.abs(h)%360; }
+function eventGradient(cal){
+  const hue = hashHue(cal||'calendar');
+  return `linear-gradient(90deg, hsla(${hue},85%,58%,0.95) 0%, hsla(${hue},85%,58%,0.72) 55%, hsla(${hue},85%,58%,0.18) 100%)`;
 }
 
 async function loadCalendars(){
@@ -332,168 +200,201 @@ async function loadCalendars(){
   calendars = j.items || [];
 
   const sel = document.getElementById('eventCalendar');
-  sel.innerHTML = '';
-  for (const c of calendars){
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = c.summary;
-    sel.appendChild(opt);
+  sel.innerHTML='';
+  for(const c of calendars){
+    const o=document.createElement('option'); o.value=c.id; o.textContent=c.summary; sel.appendChild(o);
   }
 
   const pills = document.getElementById('calendarPills');
-  pills.innerHTML = '';
-  for (const c of calendars){
-    const p = document.createElement('span');
-    p.className = 'pill';
-    p.style.borderColor = hashColor(c.summary);
-    p.textContent = c.summary;
+  pills.innerHTML='';
+  for(const c of calendars){
+    const p=document.createElement('span'); p.className='pill';
+    p.style.borderColor=`hsl(${hashHue(c.summary)},80%,60%)`;
+    p.textContent=c.summary;
     pills.appendChild(p);
   }
 }
 
-function buildGridSkeleton(){
-  const grid = document.getElementById('calendarGrid');
-  grid.innerHTML = '';
+function buildWeekScaffold(){
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML='';
 
-  // Header row
-  const topLeft = document.createElement('div');
-  topLeft.className = 'header-cell';
-  topLeft.textContent = 'Time';
-  grid.appendChild(topLeft);
-
-  for (let i = 0; i < 7; i++){
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    const h = document.createElement('div');
-    h.className = 'header-cell';
-    h.innerHTML = `<b>${d.toLocaleDateString('sv-SE', { weekday: 'long' })}</b>${d.toLocaleDateString('sv-SE', { day:'2-digit', month:'2-digit' })}`;
-    grid.appendChild(h);
+  const header = document.createElement('div');
+  header.className='week-header';
+  const timeHead = document.createElement('div');
+  timeHead.className='cell'; timeHead.textContent='Time';
+  header.appendChild(timeHead);
+  for(let i=0;i<7;i++){
+    const d=new Date(weekStart); d.setDate(d.getDate()+i);
+    const c=document.createElement('div'); c.className='cell';
+    c.innerHTML=`<b>${d.toLocaleDateString('sv-SE',{weekday:'long'})}</b>${d.toLocaleDateString('sv-SE',{day:'2-digit',month:'2-digit'})}`;
+    header.appendChild(c);
   }
+  grid.appendChild(header);
 
-  // Hour rows
-  for (let hour = HOUR_START; hour < HOUR_END; hour++){
-    const hc = document.createElement('div');
-    hc.className = 'hour-cell';
-    hc.textContent = `${pad(hour)}:00`;
-    grid.appendChild(hc);
+  const body = document.createElement('div');
+  body.className='week-body';
 
-    for (let day = 0; day < 7; day++){
-      const dc = document.createElement('div');
-      dc.className = 'day-column';
-      dc.dataset.day = String(day);
-      dc.dataset.hour = String(hour);
-      grid.appendChild(dc);
-    }
+  const hourRail = document.createElement('div');
+  hourRail.className='hour-rail';
+  for(let h=HOUR_START; h<=HOUR_END; h++){
+    const m=document.createElement('div'); m.className='hour-mark';
+    m.style.top=((h-HOUR_START)*HOUR_HEIGHT)+'px';
+    m.textContent=`${pad(h)}:00`;
+    hourRail.appendChild(m);
   }
+  body.appendChild(hourRail);
+
+  for(let i=0;i<7;i++){
+    const d=document.createElement('div');
+    d.className='day-track';
+    d.dataset.day=String(i);
+    body.appendChild(d);
+  }
+  grid.appendChild(body);
 }
 
-function placeEvents(events){
-  const dayColumns = Array.from(document.querySelectorAll('.day-column'));
-  // Keep only first row of each day as container for absolute blocks
-  const containers = {};
-  for (const el of dayColumns){
-    const day = el.dataset.day;
-    const hour = Number(el.dataset.hour);
-    if (hour === HOUR_START){
-      el.style.height = `${(HOUR_END - HOUR_START) * HOUR_HEIGHT}px`;
-      el.style.position = 'relative';
-      containers[day] = el;
-    } else {
-      el.remove();
-    }
+function toLocalDate(x){ return new Date(x); }
+
+function layoutDayEvents(dayEvents){
+  // clip + normalize
+  const items=[];
+  const minW=HOUR_START*60, maxW=HOUR_END*60;
+  for(const e of dayEvents){
+    if(!e.start?.dateTime) continue;
+    const s=toLocalDate(e.start.dateTime);
+    const en=e.end?.dateTime?toLocalDate(e.end.dateTime):new Date(s.getTime()+3600000);
+    let a=s.getHours()*60+s.getMinutes();
+    let b=en.getHours()*60+en.getMinutes();
+    if(b<=minW||a>=maxW) continue;
+    a=Math.max(a,minW); b=Math.min(b,maxW);
+    items.push({id:e.id||(`${e.summary}-${a}-${b}`), summary:e.summary||'(no title)', cal:e.calendar, startMin:a, endMin:b});
   }
 
-  for (const e of events){
-    if (!e.start?.dateTime) continue; // keep week view focused on timed blocks
-    const s = new Date(e.start.dateTime);
-    const endRaw = e.end?.dateTime ? new Date(e.end.dateTime) : new Date(s.getTime() + 60*60*1000);
+  // segment boundaries
+  const cuts=[...new Set(items.flatMap(e=>[e.startMin,e.endMin]))].sort((x,y)=>x-y);
+  if(cuts.length<2) return [];
 
-    const dayIndex = (s.getDay() + 6) % 7; // monday=0
-    if (!(dayIndex in containers)) continue;
+  // per-event segments with overlap columns
+  const segsById = new Map();
 
-    let startMinutes = s.getHours()*60 + s.getMinutes();
-    let endMinutes = endRaw.getHours()*60 + endRaw.getMinutes();
+  for(let i=0;i<cuts.length-1;i++){
+    const a=cuts[i], b=cuts[i+1];
+    const active=items.filter(e=>e.startMin < b && e.endMin > a)
+      .sort((x,y)=> x.startMin-y.startMin || x.endMin-y.endMin || x.id.localeCompare(y.id));
+    if(!active.length) continue;
 
-    const minWindow = HOUR_START * 60;
-    const maxWindow = HOUR_END * 60;
+    active.forEach((ev, idx)=>{
+      if(!segsById.has(ev.id)) segsById.set(ev.id, []);
+      segsById.get(ev.id).push({
+        id: ev.id,
+        summary: ev.summary,
+        cal: ev.cal,
+        startMin: a,
+        endMin: b,
+        col: idx,
+        cols: active.length,
+      });
+    });
+  }
 
-    if (endMinutes <= minWindow || startMinutes >= maxWindow) continue;
+  // merge contiguous segments with same lane config (gives long-event wrap after overlap ends)
+  const out=[];
+  for(const [id, segs] of segsById.entries()){
+    segs.sort((x,y)=>x.startMin-y.startMin);
+    let cur=null;
+    for(const s of segs){
+      if(cur && cur.endMin===s.startMin && cur.col===s.col && cur.cols===s.cols){
+        cur.endMin=s.endMin;
+      } else {
+        if(cur) out.push(cur);
+        cur={...s};
+      }
+    }
+    if(cur) out.push(cur);
+  }
+  return out;
+}
 
-    startMinutes = Math.max(startMinutes, minWindow);
-    endMinutes = Math.min(endMinutes, maxWindow);
+function renderWeekEvents(events){
+  const tracks = Array.from(document.querySelectorAll('.day-track'));
+  tracks.forEach(t=>t.querySelectorAll('.event-seg').forEach(e=>e.remove()));
 
-    const top = ((startMinutes - minWindow) / 60) * HOUR_HEIGHT;
-    const height = Math.max(20, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT);
+  const byDay = Array.from({length:7}, ()=>[]);
+  for(const e of events){
+    const raw=e.start?.dateTime || e.start?.date;
+    if(!raw) continue;
+    const d=new Date(raw);
+    const idx=(d.getDay()+6)%7; // monday=0
+    byDay[idx].push(e);
+  }
 
-    const block = document.createElement('div');
-    block.className = 'event-block';
-    block.style.top = `${top + 2}px`;
-    block.style.height = `${height - 4}px`;
-    block.style.cssText += ';' + eventStyle(e.calendar);
+  for(let day=0; day<7; day++){
+    const segs = layoutDayEvents(byDay[day]);
+    const track = tracks[day];
+    for(const s of segs){
+      const top=((s.startMin - HOUR_START*60)/60)*HOUR_HEIGHT;
+      const height=Math.max(16, ((s.endMin-s.startMin)/60)*HOUR_HEIGHT - 2);
+      const widthPct=100/s.cols;
+      const leftPct=s.col*widthPct;
 
-    const startTxt = localHHMM(s);
-    const endTxt = localHHMM(endRaw);
-    block.innerHTML = `
-      <div class="event-title">${e.summary || '(no title)'}</div>
-      <div class="event-meta">${startTxt}–${endTxt} · ${e.calendar}</div>
-    `;
-
-    containers[dayIndex].appendChild(block);
+      const el=document.createElement('div');
+      el.className='event-seg';
+      el.style.top = `${top+1}px`;
+      el.style.height = `${height}px`;
+      el.style.left = `calc(${leftPct}% + 4px)`;
+      el.style.width = `calc(${widthPct}% - 8px)`;
+      el.style.background = eventGradient(s.cal);
+      el.innerHTML = `<div class="event-title">${s.summary}</div><div class="event-meta">${pad(Math.floor(s.startMin/60))}:${pad(s.startMin%60)}-${pad(Math.floor(s.endMin/60))}:${pad(s.endMin%60)} · ${s.cal}</div>`;
+      track.appendChild(el);
+    }
   }
 }
 
 async function loadWeek(){
   setStatus('Loading week…');
   await loadCalendars();
-  buildGridSkeleton();
+  buildWeekScaffold();
 
-  const start = new Date(weekStart);
-  const end = new Date(weekStart); end.setDate(end.getDate() + 7);
-  document.getElementById('weekLabel').textContent =
-    `${start.toLocaleDateString('sv-SE')} → ${new Date(end.getTime()-1).toLocaleDateString('sv-SE')}`;
+  const start=new Date(weekStart);
+  const end=new Date(weekStart); end.setDate(end.getDate()+7);
+  document.getElementById('weekLabel').textContent = `${start.toLocaleDateString('sv-SE')} → ${new Date(end.getTime()-1).toLocaleDateString('sv-SE')}`;
 
-  const r = await fetch(`/api/events?start=${encodeURIComponent(isoForApi(start))}&end=${encodeURIComponent(isoForApi(end))}`);
-  const j = await r.json();
-  const items = (j.items || []).sort((a,b)=> (a.start?.dateTime||a.start?.date||'').localeCompare(b.start?.dateTime||b.start?.date||''));
-
-  placeEvents(items);
+  const r=await fetch(`/api/events?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`);
+  const j=await r.json();
+  const items=j.items||[];
+  renderWeekEvents(items);
   setStatus(`Loaded ${items.length} events this week.`);
 }
 
 async function loadTodayList(){
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start); end.setDate(end.getDate() + 1);
+  const now=new Date();
+  const s=new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const e=new Date(s); e.setDate(e.getDate()+1);
+  const r=await fetch(`/api/events?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`);
+  const j=await r.json();
+  const items=(j.items||[]).sort((a,b)=>(a.start?.dateTime||a.start?.date||'').localeCompare(b.start?.dateTime||b.start?.date||''));
 
-  const r = await fetch(`/api/events?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`);
-  const j = await r.json();
-  const items = (j.items || []).sort((a,b)=> (a.start?.dateTime||a.start?.date||'').localeCompare(b.start?.dateTime||b.start?.date||''));
-
-  const box = document.getElementById('todayList');
-  box.innerHTML = '';
-  for (const e of items){
-    const row = document.createElement('div');
-    row.className = 'row';
-    const s = e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit', hour12:false}) : 'All-day';
-    row.innerHTML = `<div><b>${e.summary}</b><div class="meta">${s} · ${e.calendar}</div></div>`;
-
-    const btn = document.createElement('button');
-    btn.textContent = 'Delete';
-    btn.onclick = async () => {
-      if (!confirm('Delete this event?')) return;
-      const rr = await fetch(`/api/events/${encodeURIComponent(e.calendarId)}/${encodeURIComponent(e.id)}`, { method: 'DELETE' });
-      if (rr.ok) loadTodayList();
-      else alert('Delete failed');
+  const box=document.getElementById('todayList'); box.innerHTML='';
+  for(const ev of items){
+    const row=document.createElement('div'); row.className='row';
+    const t=ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : 'All-day';
+    row.innerHTML=`<div><b>${ev.summary}</b><div class="meta">${t} · ${ev.calendar}</div></div>`;
+    const b=document.createElement('button'); b.textContent='Delete';
+    b.onclick=async()=>{
+      if(!confirm('Delete this event?')) return;
+      const rr=await fetch(`/api/events/${encodeURIComponent(ev.calendarId)}/${encodeURIComponent(ev.id)}`, {method:'DELETE'});
+      if(rr.ok){ loadTodayList(); loadWeek(); }
     };
-    row.appendChild(btn);
+    row.appendChild(b);
     box.appendChild(row);
   }
 }
 
 async function loadThesisSummary(days){
-  const r = await fetch(`/api/thesis-summary?days=${days}`);
-  const j = await r.json();
-  document.getElementById('thesisSummary').textContent = JSON.stringify(j, null, 2);
+  const r=await fetch(`/api/thesis-summary?days=${days}`);
+  const j=await r.json();
+  document.getElementById('thesisSummary').textContent = JSON.stringify(j,null,2);
 }
 
 loadWeek();
