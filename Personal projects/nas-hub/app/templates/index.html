@@ -43,7 +43,7 @@
       <input id="eventStart" type="datetime-local" />
       <label>End</label>
       <input id="eventEnd" type="datetime-local" />
-      <button onclick="createEvent()">Create event</button>
+      <button id="createEventBtn" type="button">Create event</button>
       <p class="small">Default timezone: Europe/Stockholm</p>
     </div>
   </div>
@@ -183,6 +183,7 @@ async function loadThesisSummary(days){
   document.getElementById('thesisSummary').textContent = JSON.stringify(j, null, 2);
 }
 
+document.getElementById('createEventBtn').addEventListener('click', createEvent);
 loadCalendars();
 </script>
 </body>
