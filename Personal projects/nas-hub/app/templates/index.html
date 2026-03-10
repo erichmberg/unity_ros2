@@ -335,8 +335,11 @@ let modalEditMode = false;
 let dragState = null;
 let moveState = null;
 let pressState = null;
+let suppressNextOpen = false;
 const DRAG_MIN_MINUTES = 15;
 const PRESS_TO_DRAG_MS = 180;
+const MOVE_PIXELS_THRESHOLD_MOUSE = 6;
+const MOVE_PIXELS_THRESHOLD_TOUCH = 14;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function showLoading(text='Saving changes…'){
@@ -536,6 +539,11 @@ function buildWeekScaffold(){
         day: i,
         track: d,
         startClientY: ev.clientY,
+        startClientX: ev.clientX,
+        lastClientX: ev.clientX,
+        lastClientY: ev.clientY,
+        movedPx: 0,
+        pressedAt: Date.now(),
         started: false,
         timer: setTimeout(startPressDrag, PRESS_TO_DRAG_MS),
       };
@@ -667,6 +675,10 @@ function renderWeekEvents(events){
 
         // Normal click (incl. light touchpad tap) opens details.
         el.onclick = () => {
+          if (suppressNextOpen) {
+            suppressNextOpen = false;
+            return;
+          }
           if (!moveState) openEventModal(src);
         };
 
@@ -680,6 +692,11 @@ function renderWeekEvents(events){
             day,
             track,
             startClientY: ev.clientY,
+            startClientX: ev.clientX,
+            lastClientX: ev.clientX,
+            lastClientY: ev.clientY,
+            movedPx: 0,
+            pressedAt: Date.now(),
             started: false,
             timer: setTimeout(startPressDrag, PRESS_TO_DRAG_MS),
           };
@@ -802,6 +819,15 @@ function minuteFromPointer(track, clientY){
 
 function startPressDrag(){
   if (!pressState || pressState.started) return;
+
+  // Require some intentional pointer movement before turning event press into move-drag.
+  if (pressState.kind === 'event') {
+    const threshold = pressState.movedPx <= 2 ? MOVE_PIXELS_THRESHOLD_TOUCH : MOVE_PIXELS_THRESHOLD_MOUSE;
+    if (pressState.movedPx < threshold) {
+      return; // treat as click/tap, not drag
+    }
+  }
+
   const {kind, track, day, startClientY} = pressState;
   const startMin = minuteFromPointer(track, startClientY);
   const overlay = document.createElement('div');
@@ -852,6 +878,18 @@ function updateDragOverlay(){
 }
 
 window.addEventListener('mousemove', (ev) => {
+  if (pressState && !pressState.started) {
+    const dx = ev.clientX - pressState.startClientX;
+    const dy = ev.clientY - pressState.startClientY;
+    pressState.movedPx = Math.hypot(dx, dy);
+    pressState.lastClientX = ev.clientX;
+    pressState.lastClientY = ev.clientY;
+
+    if (Date.now() - pressState.pressedAt >= PRESS_TO_DRAG_MS) {
+      startPressDrag();
+    }
+  }
+
   if (moveState) {
     if (!moveState.overlay || !moveState.overlay.isConnected) {
       moveState = null;
@@ -892,6 +930,7 @@ window.addEventListener('mouseup', async () => {
   }
 
   if (moveState) {
+    suppressNextOpen = true;
     const snapshot = moveState;
     moveState = null; // prevent ghost-follow while async update runs
     try {
