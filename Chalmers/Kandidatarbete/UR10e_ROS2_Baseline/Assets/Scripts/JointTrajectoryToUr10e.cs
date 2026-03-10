@@ -146,7 +146,7 @@ public class JointTrajectoryToUr10e : MonoBehaviour
             TryAdd(uj);
         foreach (var uj in GetComponentsInChildren<UrdfJointPrismatic>(true))
             TryAdd(uj);
-        Debug.Log($"JointTrajectoryToUr15: mapped {jointMap.Count} joints");
+        Debug.Log($"JointTrajectoryToUr10e: mapped {jointMap.Count} joints");
     }
 
     void TryAdd(Component urdfJoint)
@@ -159,12 +159,10 @@ public class JointTrajectoryToUr10e : MonoBehaviour
 
         if (!jointMap.ContainsKey(name))
         {
-            // Requested default target in inspector/runtime
-            var drive = ab.xDrive;
-            drive.target = (ab.jointType == ArticulationJointType.PrismaticJoint) ? 0f : 30f;
-            ab.xDrive = drive;
-
+            // Keep imported/default pose at startup; do not force all joints to hardcoded targets.
+            // This prevents slow drift right after pressing Play when no trajectory has been commanded yet.
             jointMap.Add(name, ab);
+            cmdTarget[name] = ab.xDrive.target;
         }
     }
 
