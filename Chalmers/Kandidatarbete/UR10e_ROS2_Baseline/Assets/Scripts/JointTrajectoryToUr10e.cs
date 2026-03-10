@@ -119,18 +119,10 @@ public class JointTrajectoryToUr10e : MonoBehaviour
             var drive = joint.xDrive;
 
             // Ensure usable gains
-            if (isFinger)
-            {
-                if (drive.stiffness <= 0f) drive.stiffness = 8000f;
-                if (drive.damping <= 0f) drive.damping = 300f;
-                if (drive.forceLimit <= 0f) drive.forceLimit = 3000f;
-            }
-            else
-            {
-                if (drive.stiffness <= 0f) drive.stiffness = 1500f;
-                if (drive.damping <= 0f) drive.damping = 400f;
-                if (drive.forceLimit <= 0f) drive.forceLimit = 1000f;
-            }
+            // Requested default drive settings
+            if (drive.stiffness <= 0f) drive.stiffness = 800f;
+            if (drive.damping <= 0f) drive.damping = 200f;
+            if (drive.forceLimit <= 0f) drive.forceLimit = 300f;
 
             // Speed-limit commanded target (deg/s for revolute, m/s for prismatic).
             float current = cmdTarget.TryGetValue(jName, out var v) ? v : drive.target;
@@ -166,7 +158,14 @@ public class JointTrajectoryToUr10e : MonoBehaviour
         if (ab == null) return;
 
         if (!jointMap.ContainsKey(name))
+        {
+            // Requested default target in inspector/runtime
+            var drive = ab.xDrive;
+            drive.target = (ab.jointType == ArticulationJointType.PrismaticJoint) ? 0f : 30f;
+            ab.xDrive = drive;
+
             jointMap.Add(name, ab);
+        }
     }
 
     static string GetJointNameReflection(Component urdfJoint)
