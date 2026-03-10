@@ -139,13 +139,16 @@ async def create_event(request: Request):
     body = await request.json()
     creds = get_google_creds()
     svc = build("calendar", "v3", credentials=creds)
-    created = svc.events().insert(calendarId=body["calendarId"], body={
-        "summary": body["summary"],
-        "description": body.get("description", ""),
-        "start": {"dateTime": body["start"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
-        "end": {"dateTime": body["end"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
-    }).execute()
-    return {"id": created.get("id"), "htmlLink": created.get("htmlLink")}
+    try:
+        created = svc.events().insert(calendarId=body["calendarId"], body={
+            "summary": body["summary"],
+            "description": body.get("description", ""),
+            "start": {"dateTime": body["start"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
+            "end": {"dateTime": body["end"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
+        }).execute()
+        return {"id": created.get("id"), "htmlLink": created.get("htmlLink")}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Create event failed: {e}")
 
 
 @app.delete("/api/events/{calendar_id}/{event_id}")

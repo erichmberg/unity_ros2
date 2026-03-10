@@ -147,8 +147,9 @@ async function createEvent(){
     calendarId,
     summary,
     description,
-    start: new Date(startRaw).toISOString(),
-    end: new Date(endRaw).toISOString(),
+    // Keep local wall-clock time (datetime-local), backend supplies Europe/Stockholm timezone
+    start: `${startRaw}:00`,
+    end: `${endRaw}:00`,
     timeZone: 'Europe/Stockholm'
   };
 
@@ -158,6 +159,10 @@ async function createEvent(){
     body: JSON.stringify(payload)
   });
   const j = await r.json();
+  if (!r.ok){
+    document.getElementById('out').textContent = `Create failed: ${j.detail || 'Unknown error'}`;
+    return;
+  }
   document.getElementById('out').textContent = `Created event: ${j.id || 'ok'}`;
   await loadToday();
 }
