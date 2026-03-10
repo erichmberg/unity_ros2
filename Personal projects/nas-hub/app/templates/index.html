@@ -16,7 +16,8 @@
       --day-min-width: 150px;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Inter, Segoe UI, system-ui, sans-serif; background: linear-gradient(180deg, #070708 0%, #151618 100%); color: var(--text); }
+    html, body { min-height: 100%; }
+    body { margin: 0; font-family: Inter, Segoe UI, system-ui, sans-serif; background: linear-gradient(180deg, #070708 0%, #151618 100%); color: var(--text); background-attachment: fixed; }
     .wrap { max-width: 1400px; margin: 16px auto 32px; padding: 0 14px; }
     h1 { margin: 0; font-size: 28px; }
     h2 { margin: 0 0 10px; font-size: 18px; }
@@ -298,6 +299,7 @@ let weekStart = getMonday(new Date());
 let selectedEvent = null;
 let modalEditMode = false;
 let dragState = null;
+let moveState = null;
 let pressState = null;
 const DRAG_MIN_MINUTES = 15;
 const PRESS_TO_DRAG_MS = 180;
@@ -356,6 +358,30 @@ function minutesToInput(dayDate, mins){
   d.setHours(0,0,0,0);
   d.setMinutes(mins);
   return toLocalInputValue(d.toISOString());
+}
+
+function dayDateFromIndex(dayIdx){
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + dayIdx);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+async function moveEventTo(ev, dayIdx, startMin){
+  const sInput = minutesToInput(dayDateFromIndex(dayIdx), startMin);
+  const eInput = minutesToInput(dayDateFromIndex(dayIdx), startMin + (ev._durationMin || 60));
+  const payload = {
+    summary: ev.summary || '(no title)',
+    description: ev.description || '',
+    start: `${sInput}:00`,
+    end: `${eInput}:00`,
+    timeZone: 'Europe/Stockholm'
+  };
+  const r = await fetch(`/api/events/${encodeURIComponent(ev.calendarId)}/${encodeURIComponent(ev.id)}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.detail || 'Move failed');
 }
 
 function openCreateModal(prefill = null){
@@ -460,15 +486,15 @@ function buildWeekScaffold(){
 
     d.addEventListener('mousedown', (ev) => {
       if (ev.button !== 0) return;
-      if (ev.target.closest('.event-seg')) return; // clicking existing event should not start drag-create
-      const rect = d.getBoundingClientRect();
-      const y = ev.clientY - rect.top;
-      const mins = visibleHourStart*60 + (y / HOUR_HEIGHT) * 60;
-      const snapped = roundToQuarter(Math.max(visibleHourStart*60, Math.min(visibleHourEnd*60, mins)));
-      const overlay = document.createElement('div');
-      overlay.className = 'drag-create';
-      d.appendChild(overlay);
-      dragState = { day:i, track:d, startMin:snapped, endMin:snapped, overlay };
+      if (ev.target.closest('.event-seg')) return; // existing event has its own handler
+      pressState = {
+        kind: 'create',
+        day: i,
+        track: d,
+        startClientY: ev.clientY,
+        started: false,
+        timer: setTimeout(startPressDrag, PRESS_TO_DRAG_MS),
+      };
       ev.preventDefault();
     });
 
@@ -587,14 +613,25 @@ function renderWeekEvents(events){
       const src = byDay[day].find(x => (x.id||'') === s.id);
       if (src) {
         el.style.cursor = 'pointer';
+        const st = src.start?.dateTime ? new Date(src.start.dateTime) : null;
+        const en = src.end?.dateTime ? new Date(src.end.dateTime) : null;
+        src._durationMin = (st && en) ? Math.max(15, Math.round((en - st) / 60000)) : 60;
+
         el.onmouseenter = (ev) => showHoverTip(ev, src);
         el.onmousemove = (ev) => moveHoverTip(ev);
         el.onmouseleave = () => hideHoverTip();
 
+        // Normal click (incl. light touchpad tap) opens details.
+        el.onclick = () => {
+          if (!moveState) openEventModal(src);
+        };
+
+        // Hold-to-drag moves existing event.
         el.onmousedown = (ev) => {
           if (ev.button !== 0) return;
           ev.stopPropagation();
           pressState = {
+            kind: 'event',
             event: src,
             day,
             track,
@@ -717,14 +754,31 @@ function minuteFromPointer(track, clientY){
 
 function startPressDrag(){
   if (!pressState || pressState.started) return;
-  const {track, day, startClientY} = pressState;
+  const {kind, track, day, startClientY} = pressState;
   const startMin = minuteFromPointer(track, startClientY);
   const overlay = document.createElement('div');
   overlay.className = 'drag-create';
   track.appendChild(overlay);
-  dragState = { day, track, startMin, endMin: startMin, overlay };
   pressState.started = true;
-  updateDragOverlay();
+
+  if (kind === 'event') {
+    moveState = {
+      event: pressState.event,
+      day,
+      track,
+      startMin,
+      overlay,
+    };
+    // initialize overlay height to event duration
+    const dur = pressState.event?._durationMin || 60;
+    const top = ((startMin - visibleHourStart*60)/60) * HOUR_HEIGHT;
+    const h = Math.max(8, (dur/60)*HOUR_HEIGHT);
+    overlay.style.top = `${top}px`;
+    overlay.style.height = `${h}px`;
+  } else {
+    dragState = { day, track, startMin, endMin: startMin, overlay };
+    updateDragOverlay();
+  }
 }
 
 function switchTab(tab){
@@ -750,25 +804,58 @@ function updateDragOverlay(){
 }
 
 window.addEventListener('mousemove', (ev) => {
+  if (moveState) {
+    const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-track');
+    if (target) {
+      const dayIdx = Number(target.dataset.day);
+      moveState.track = target;
+      moveState.day = dayIdx;
+      const startMin = minuteFromPointer(target, ev.clientY);
+      moveState.startMin = startMin;
+      const dur = moveState.event?._durationMin || 60;
+      const top = ((startMin - visibleHourStart*60)/60) * HOUR_HEIGHT;
+      const h = Math.max(8, (dur/60)*HOUR_HEIGHT);
+      if (moveState.overlay.parentElement !== target) {
+        moveState.overlay.remove();
+        target.appendChild(moveState.overlay);
+      }
+      moveState.overlay.style.top = `${top}px`;
+      moveState.overlay.style.height = `${h}px`;
+    }
+    return;
+  }
+
   if (!dragState) return;
   dragState.endMin = minuteFromPointer(dragState.track, ev.clientY);
   updateDragOverlay();
 });
 
-window.addEventListener('mouseup', () => {
-  // Handle press on existing event (click vs hold-drag)
+window.addEventListener('mouseup', async () => {
   if (pressState) {
     clearTimeout(pressState.timer);
-    const src = pressState.event;
     const started = pressState.started;
+    // short click path handled by onclick on event blocks; for empty cells do nothing
     pressState = null;
+    if (!started) return;
+  }
 
-    if (!started) {
-      // Short click -> open details
-      openEventModal(src);
+  if (moveState) {
+    try {
+      const ev = moveState.event;
+      const dayIdx = moveState.day;
+      const startMin = moveState.startMin;
+      moveState.overlay.remove();
+      await moveEventTo(ev, dayIdx, startMin);
+      moveState = null;
+      await loadWeek();
+      return;
+    } catch (e) {
+      if (moveState?.overlay) moveState.overlay.remove();
+      moveState = null;
+      alert(e.message || 'Move failed');
+      await loadWeek();
       return;
     }
-    // if started, fall through and finalize drag create below
   }
 
   if (!dragState) return;
@@ -780,7 +867,6 @@ window.addEventListener('mouseup', () => {
 
   dragState.overlay.remove();
 
-  // Only open create flow if user dragged at least one quarter hour.
   if (span >= DRAG_MIN_MINUTES) {
     openCreateModal({
       start: minutesToInput(dayDate, a),
