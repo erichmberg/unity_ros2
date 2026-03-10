@@ -117,7 +117,9 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-  <!-- links: rail + main serial chain -->
+  <!-- links: world + rail + main serial chain -->
+  <link name="world"/>
+
   <link name="rail_base_link">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -276,7 +278,13 @@
       <inertia ixx="0.00014434577559500002" ixy="0.0" ixz="0.0" iyy="0.00014434577559500002" iyz="0.0" izz="0.00020452500000000002"/>
     </inertial>
   </link>
-  <!-- joints: rail + main serial chain -->
+  <!-- joints: world + rail + main serial chain -->
+  <joint name="world_to_rail_base" type="fixed">
+    <parent link="world"/>
+    <child link="rail_base_link"/>
+    <origin xyz="-0.02 1.6 0" rpy="3.141592653589793 0 1.5707963267948966"/>
+  </joint>
+
   <joint name="rail_joint" type="prismatic">
     <parent link="rail_base_link"/>
     <child link="base_link"/>
