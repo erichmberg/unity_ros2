@@ -1,95 +1,329 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NAS Calendar + Thesis Hub</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
-    input, textarea, select, button { padding: .5rem; margin: .25rem 0; width: 100%; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    pre { white-space: pre-wrap; background: #f7f7f7; padding: .75rem; border-radius: 8px; }
-    .event { border: 1px solid #e5e5e5; border-radius: 8px; padding: .5rem .75rem; margin: .4rem 0; display:flex; justify-content:space-between; gap:1rem; }
-    .small { font-size: .9rem; color: #555; }
+    :root {
+      --bg: #0f1220;
+      --panel: #161b2e;
+      --panel-2: #1d2440;
+      --text: #eaf0ff;
+      --muted: #9fb0d8;
+      --line: #2b345a;
+      --accent: #7aa2ff;
+      --hour-col: 64px;
+      --day-col-min: 150px;
+      --hour-height: 56px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at top, #171d33 0%, #0f1220 45%, #0d1020 100%);
+      color: var(--text);
+    }
+
+    .wrap { max-width: 1380px; margin: 20px auto 40px; padding: 0 16px; }
+    h1 { margin: 0 0 14px; font-size: 28px; }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    .small { color: var(--muted); font-size: 13px; }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(2px);
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
+    .grid-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    input, textarea, select, button {
+      width: 100%;
+      border: 1px solid #34406d;
+      background: #11162a;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 9px 10px;
+      margin: 6px 0;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer;
+      background: linear-gradient(180deg, #2a3a70, #22305b);
+      border-color: #3a4e90;
+      font-weight: 600;
+    }
+    button:hover { filter: brightness(1.08); }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row button { width: auto; }
+
+    .status { margin-top: 8px; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+
+    .week-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .calendar-board {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #10152a;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: var(--hour-col) repeat(7, minmax(var(--day-col-min), 1fr));
+      min-width: 1000px;
+    }
+
+    .header-cell {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      background: #151d38;
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      padding: 10px 8px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .header-cell b { display: block; color: var(--text); font-size: 14px; }
+
+    .hour-cell {
+      height: var(--hour-height);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid rgba(62, 76, 125, .35);
+      color: #7f90be;
+      font-size: 12px;
+      padding: 2px 6px;
+      text-align: right;
+    }
+
+    .day-column {
+      position: relative;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid rgba(62, 76, 125, .35);
+      height: calc(var(--hour-height) * 16);
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,0.03) 0,
+          rgba(255,255,255,0.03) 1px,
+          transparent 1px,
+          transparent var(--hour-height)
+        );
+    }
+
+    .event-block {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.25);
+      padding: 6px 7px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,.2);
+      backdrop-filter: blur(1.5px);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .event-title { font-weight: 700; }
+    .event-meta { opacity: .95; font-size: 11px; margin-top: 2px; }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid #405088;
+      background: #182349;
+      color: #c9d6ff;
+      font-size: 12px;
+      margin-right: 6px;
+      margin-bottom: 5px;
+    }
+
+    .events-list .row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      background: #121935;
+    }
+    .events-list .meta { color: var(--muted); font-size: 12px; }
+    .events-list button { width: auto; padding: 5px 9px; }
+
+    pre {
+      background: #10152a;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #b8c8ef;
+      padding: 8px;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 980px) {
+      .grid-2, .grid-2b { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <h1>Calendar + Thesis Hub</h1>
+  <div class="wrap">
+    <h1>Calendar + Thesis Hub</h1>
 
-  <div class="row">
-    <div class="card">
-      <h2>Google Calendar</h2>
-      {% if connected %}
-        <p>✅ Connected (token file found)</p>
-        <button onclick="loadCalendars()">Refresh calendars</button>
-        <button onclick="loadToday()">Load today events</button>
-        <div id="events"></div>
-        <pre id="out"></pre>
-      {% else %}
-        <p>Not connected yet. Put a valid token file at:<br><code>{{token_file}}</code></p>
-      {% endif %}
+    <div class="grid-2">
+      <div class="card">
+        <div class="week-head">
+          <h2>Weekly calendar view (Mon → Sun, 24h)</h2>
+          <div class="btn-row">
+            <button onclick="shiftWeek(-7)">← Previous</button>
+            <button onclick="goToCurrentWeek()">Today</button>
+            <button onclick="shiftWeek(7)">Next →</button>
+            <button onclick="loadWeek()">Refresh</button>
+          </div>
+        </div>
+        <div id="weekLabel" class="small"></div>
+
+        <div class="calendar-board" style="margin-top:8px;">
+          <div id="calendarGrid" class="calendar-grid"></div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <h2 style="font-size:16px; margin-bottom:6px;">Calendars loaded</h2>
+          <div id="calendarPills"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Create calendar event</h2>
+          <form method="post" action="/events/create">
+            <label>Calendar</label>
+            <select id="eventCalendar" name="calendarId" required></select>
+            <label>Title</label>
+            <input id="eventTitle" name="summary" type="text" placeholder="Meeting" required />
+            <label>Description</label>
+            <textarea id="eventDesc" name="description" rows="2" placeholder="Optional"></textarea>
+            <label>Start</label>
+            <input id="eventStart" name="start_local" type="datetime-local" required />
+            <label>End</label>
+            <input id="eventEnd" name="end_local" type="datetime-local" required />
+            <button type="submit">Create event</button>
+          </form>
+          <p class="small">Timezone: Europe/Stockholm · 24-hour format</p>
+          <div id="status" class="status">Loading…</div>
+        </div>
+
+        <div class="card">
+          <h2>Today events (list)</h2>
+          <button onclick="loadTodayList()">Refresh today list</button>
+          <div id="todayList" class="events-list" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2b">
+      <div class="card">
+        <h2>Add thesis log</h2>
+        <form method="post" action="/api/thesis-log">
+          <label>Started at</label>
+          <input type="datetime-local" name="started_at" required>
+          <label>Hours</label>
+          <input type="number" step="0.25" name="hours" required>
+          <label>Summary</label>
+          <input type="text" name="summary" required>
+          <label>Details</label>
+          <textarea name="details" rows="3"></textarea>
+          <button type="submit">Save log</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Thesis summary</h2>
+        <div class="btn-row">
+          <button onclick="loadThesisSummary(7)">Last 7 days</button>
+          <button onclick="loadThesisSummary(30)">Last 30 days</button>
+        </div>
+        <pre id="thesisSummary">Click a button to load summary.</pre>
+      </div>
     </div>
 
     <div class="card">
-      <h2>Create calendar event</h2>
-      <form method="post" action="/events/create">
-        <label>Calendar</label>
-        <select id="eventCalendar" name="calendarId" required></select>
-        <label>Title</label>
-        <input id="eventTitle" name="summary" type="text" placeholder="Meeting" required />
-        <label>Description</label>
-        <textarea id="eventDesc" name="description" rows="2" placeholder="Optional"></textarea>
-        <label>Start</label>
-        <input id="eventStart" name="start_local" type="datetime-local" required />
-        <label>End</label>
-        <input id="eventEnd" name="end_local" type="datetime-local" required />
-        <button type="submit">Create event</button>
-      </form>
-      <p class="small">Default timezone: Europe/Stockholm</p>
+      <h2>Recent thesis logs</h2>
+      {% for l in logs %}
+        <p><b>{{l.started_at}}</b> — {{l.hours}}h — {{l.summary}}</p>
+        {% if l.details %}<p>{{l.details}}</p>{% endif %}
+        <hr/>
+      {% endfor %}
     </div>
-  </div>
-
-  <div class="row">
-    <div class="card">
-      <h2>Add thesis log</h2>
-      <form method="post" action="/api/thesis-log">
-        <label>Started at</label>
-        <input type="datetime-local" name="started_at" required>
-        <label>Hours</label>
-        <input type="number" step="0.25" name="hours" required>
-        <label>Summary</label>
-        <input type="text" name="summary" required>
-        <label>Details</label>
-        <textarea name="details" rows="3"></textarea>
-        <button type="submit">Save log</button>
-      </form>
-    </div>
-
-    <div class="card">
-      <h2>Thesis summary</h2>
-      <button onclick="loadThesisSummary(7)">Last 7 days</button>
-      <button onclick="loadThesisSummary(30)">Last 30 days</button>
-      <pre id="thesisSummary">Click a button to load summary.</pre>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Recent thesis logs</h2>
-    {% for l in logs %}
-      <p><b>{{l.started_at}}</b> — {{l.hours}}h — {{l.summary}}</p>
-      {% if l.details %}<p>{{l.details}}</p>{% endif %}
-      <hr/>
-    {% endfor %}
   </div>
 
 <script>
+const HOUR_START = 6;   // visible day starts 06:00
+const HOUR_END = 22;    // visible day ends 22:00
+const HOUR_HEIGHT = 56;
 let calendars = [];
+let weekStart = getMonday(new Date());
 
-function formatEventStart(e){
-  if (e.start?.dateTime) return new Date(e.start.dateTime).toLocaleString();
-  if (e.start?.date) return `${e.start.date} (All-day)`;
-  return 'Unknown';
+function setStatus(msg){ document.getElementById('status').textContent = msg; }
+
+function getMonday(d){
+  const date = new Date(d);
+  const day = (date.getDay() + 6) % 7; // monday=0
+  date.setDate(date.getDate() - day);
+  date.setHours(0,0,0,0);
+  return date;
+}
+
+function shiftWeek(days){
+  weekStart.setDate(weekStart.getDate() + days);
+  loadWeek();
+}
+
+function goToCurrentWeek(){
+  weekStart = getMonday(new Date());
+  loadWeek();
+}
+
+function fmtDate(d){
+  return d.toLocaleDateString('sv-SE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+}
+
+function isoForApi(d){ return d.toISOString(); }
+
+function hashColor(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  const hue = Math.abs(h) % 360;
+  return `hsl(${hue}, 80%, 58%)`;
+}
+
+function eventStyle(calendarName){
+  const base = hashColor(calendarName || 'calendar');
+  return `background: linear-gradient(90deg, ${base}DD 0%, ${base}AA 55%, ${base}30 100%);`;
+}
+
+function pad(n){ return String(n).padStart(2, '0'); }
+
+function localHHMM(date){
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 async function loadCalendars(){
@@ -102,44 +336,157 @@ async function loadCalendars(){
   for (const c of calendars){
     const opt = document.createElement('option');
     opt.value = c.id;
-    opt.textContent = `${c.summary} (${c.id})`;
+    opt.textContent = c.summary;
     sel.appendChild(opt);
   }
 
-  document.getElementById('out').textContent = `Loaded ${calendars.length} calendars.`;
+  const pills = document.getElementById('calendarPills');
+  pills.innerHTML = '';
+  for (const c of calendars){
+    const p = document.createElement('span');
+    p.className = 'pill';
+    p.style.borderColor = hashColor(c.summary);
+    p.textContent = c.summary;
+    pills.appendChild(p);
+  }
 }
 
-async function loadToday(){
+function buildGridSkeleton(){
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+
+  // Header row
+  const topLeft = document.createElement('div');
+  topLeft.className = 'header-cell';
+  topLeft.textContent = 'Time';
+  grid.appendChild(topLeft);
+
+  for (let i = 0; i < 7; i++){
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    const h = document.createElement('div');
+    h.className = 'header-cell';
+    h.innerHTML = `<b>${d.toLocaleDateString('sv-SE', { weekday: 'long' })}</b>${d.toLocaleDateString('sv-SE', { day:'2-digit', month:'2-digit' })}`;
+    grid.appendChild(h);
+  }
+
+  // Hour rows
+  for (let hour = HOUR_START; hour < HOUR_END; hour++){
+    const hc = document.createElement('div');
+    hc.className = 'hour-cell';
+    hc.textContent = `${pad(hour)}:00`;
+    grid.appendChild(hc);
+
+    for (let day = 0; day < 7; day++){
+      const dc = document.createElement('div');
+      dc.className = 'day-column';
+      dc.dataset.day = String(day);
+      dc.dataset.hour = String(hour);
+      grid.appendChild(dc);
+    }
+  }
+}
+
+function placeEvents(events){
+  const dayColumns = Array.from(document.querySelectorAll('.day-column'));
+  // Keep only first row of each day as container for absolute blocks
+  const containers = {};
+  for (const el of dayColumns){
+    const day = el.dataset.day;
+    const hour = Number(el.dataset.hour);
+    if (hour === HOUR_START){
+      el.style.height = `${(HOUR_END - HOUR_START) * HOUR_HEIGHT}px`;
+      el.style.position = 'relative';
+      containers[day] = el;
+    } else {
+      el.remove();
+    }
+  }
+
+  for (const e of events){
+    if (!e.start?.dateTime) continue; // keep week view focused on timed blocks
+    const s = new Date(e.start.dateTime);
+    const endRaw = e.end?.dateTime ? new Date(e.end.dateTime) : new Date(s.getTime() + 60*60*1000);
+
+    const dayIndex = (s.getDay() + 6) % 7; // monday=0
+    if (!(dayIndex in containers)) continue;
+
+    let startMinutes = s.getHours()*60 + s.getMinutes();
+    let endMinutes = endRaw.getHours()*60 + endRaw.getMinutes();
+
+    const minWindow = HOUR_START * 60;
+    const maxWindow = HOUR_END * 60;
+
+    if (endMinutes <= minWindow || startMinutes >= maxWindow) continue;
+
+    startMinutes = Math.max(startMinutes, minWindow);
+    endMinutes = Math.min(endMinutes, maxWindow);
+
+    const top = ((startMinutes - minWindow) / 60) * HOUR_HEIGHT;
+    const height = Math.max(20, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT);
+
+    const block = document.createElement('div');
+    block.className = 'event-block';
+    block.style.top = `${top + 2}px`;
+    block.style.height = `${height - 4}px`;
+    block.style.cssText += ';' + eventStyle(e.calendar);
+
+    const startTxt = localHHMM(s);
+    const endTxt = localHHMM(endRaw);
+    block.innerHTML = `
+      <div class="event-title">${e.summary || '(no title)'}</div>
+      <div class="event-meta">${startTxt}–${endTxt} · ${e.calendar}</div>
+    `;
+
+    containers[dayIndex].appendChild(block);
+  }
+}
+
+async function loadWeek(){
+  setStatus('Loading week…');
+  await loadCalendars();
+  buildGridSkeleton();
+
+  const start = new Date(weekStart);
+  const end = new Date(weekStart); end.setDate(end.getDate() + 7);
+  document.getElementById('weekLabel').textContent =
+    `${start.toLocaleDateString('sv-SE')} → ${new Date(end.getTime()-1).toLocaleDateString('sv-SE')}`;
+
+  const r = await fetch(`/api/events?start=${encodeURIComponent(isoForApi(start))}&end=${encodeURIComponent(isoForApi(end))}`);
+  const j = await r.json();
+  const items = (j.items || []).sort((a,b)=> (a.start?.dateTime||a.start?.date||'').localeCompare(b.start?.dateTime||b.start?.date||''));
+
+  placeEvents(items);
+  setStatus(`Loaded ${items.length} events this week.`);
+}
+
+async function loadTodayList(){
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start); end.setDate(end.getDate()+1);
+  const end = new Date(start); end.setDate(end.getDate() + 1);
+
   const r = await fetch(`/api/events?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`);
   const j = await r.json();
   const items = (j.items || []).sort((a,b)=> (a.start?.dateTime||a.start?.date||'').localeCompare(b.start?.dateTime||b.start?.date||''));
 
-  const box = document.getElementById('events');
+  const box = document.getElementById('todayList');
   box.innerHTML = '';
   for (const e of items){
     const row = document.createElement('div');
-    row.className = 'event';
-    row.innerHTML = `<div><b>${e.summary}</b><br><span class="small">${formatEventStart(e)} — ${e.calendar}</span></div>`;
+    row.className = 'row';
+    const s = e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit', hour12:false}) : 'All-day';
+    row.innerHTML = `<div><b>${e.summary}</b><div class="meta">${s} · ${e.calendar}</div></div>`;
+
     const btn = document.createElement('button');
-    btn.style.width = 'auto';
     btn.textContent = 'Delete';
-    btn.onclick = () => deleteEvent(e.calendarId, e.id);
+    btn.onclick = async () => {
+      if (!confirm('Delete this event?')) return;
+      const rr = await fetch(`/api/events/${encodeURIComponent(e.calendarId)}/${encodeURIComponent(e.id)}`, { method: 'DELETE' });
+      if (rr.ok) loadTodayList();
+      else alert('Delete failed');
+    };
     row.appendChild(btn);
     box.appendChild(row);
-  }
-  document.getElementById('out').textContent = `Loaded ${items.length} events for today.`;
-}
-
-async function deleteEvent(calendarId, eventId){
-  if (!confirm('Delete this event?')) return;
-  const r = await fetch(`/api/events/${encodeURIComponent(calendarId)}/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
-  if (r.ok){
-    await loadToday();
-  } else {
-    alert('Failed to delete event.');
   }
 }
 
@@ -149,7 +496,8 @@ async function loadThesisSummary(days){
   document.getElementById('thesisSummary').textContent = JSON.stringify(j, null, 2);
 }
 
-loadCalendars();
+loadWeek();
+loadTodayList();
 </script>
 </body>
 </html>
