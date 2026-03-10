@@ -24,6 +24,10 @@
     .topbar { display:flex; justify-content:space-between; align-items:center; margin: 0 0 10px; gap:10px; }
     .theme-toggle { width:auto; padding:8px 12px; }
     .plus-btn { width:auto; padding:8px 12px; font-size:18px; line-height:1; }
+    .tabs { display:flex; gap:8px; margin: 0 0 10px; }
+    .tab-btn { width:auto; padding:7px 12px; }
+    .tab-btn.active { border-color:#5a6174; background:#2a2e36; color:#fff; }
+    body[data-theme="light"] .tab-btn.active { border-color:#9fb2e6; background:#dfe9ff; color:#1f2a44; }
 
     .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
     .grid-2 { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
@@ -164,6 +168,12 @@
       </div>
     </div>
 
+    <div class="tabs">
+      <button id="tabBtnCalendar" class="tab-btn active" type="button" onclick="switchTab('calendar')">Calendar</button>
+      <button id="tabBtnThesis" class="tab-btn" type="button" onclick="switchTab('thesis')">Candidate thesis</button>
+    </div>
+
+    <div id="tabCalendar">
     <div class="grid-2">
       <div class="card">
         <div class="week-head">
@@ -194,6 +204,7 @@
           <div id="status" class="small">Loading…</div>
         </div>
       </div>
+    </div>
     </div>
 
     <div id="eventModalBackdrop" class="modal-backdrop" onclick="closeModal()">
@@ -249,6 +260,7 @@
 
     <div id="hoverTip" class="hover-tip"></div>
 
+    <div id="tabThesis" class="hidden">
     <div class="grid-2b">
       <div class="card">
         <h2>Add thesis log</h2>
@@ -286,7 +298,9 @@ let weekStart = getMonday(new Date());
 let selectedEvent = null;
 let modalEditMode = false;
 let dragState = null;
+let pressState = null;
 const DRAG_MIN_MINUTES = 15;
+const PRESS_TO_DRAG_MS = 180;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -573,10 +587,22 @@ function renderWeekEvents(events){
       const src = byDay[day].find(x => (x.id||'') === s.id);
       if (src) {
         el.style.cursor = 'pointer';
-        el.onclick = () => openEventModal(src);
         el.onmouseenter = (ev) => showHoverTip(ev, src);
         el.onmousemove = (ev) => moveHoverTip(ev);
         el.onmouseleave = () => hideHoverTip();
+
+        el.onmousedown = (ev) => {
+          if (ev.button !== 0) return;
+          ev.stopPropagation();
+          pressState = {
+            event: src,
+            day,
+            track,
+            startClientY: ev.clientY,
+            started: false,
+            timer: setTimeout(startPressDrag, PRESS_TO_DRAG_MS),
+          };
+        };
       }
       track.appendChild(el);
     }
@@ -682,6 +708,37 @@ async function deleteModalEvent(){
   await loadWeek();
 }
 
+function minuteFromPointer(track, clientY){
+  const rect = track.getBoundingClientRect();
+  const y = clientY - rect.top;
+  const mins = visibleHourStart*60 + (y / HOUR_HEIGHT) * 60;
+  return roundToQuarter(Math.max(visibleHourStart*60, Math.min(visibleHourEnd*60, mins)));
+}
+
+function startPressDrag(){
+  if (!pressState || pressState.started) return;
+  const {track, day, startClientY} = pressState;
+  const startMin = minuteFromPointer(track, startClientY);
+  const overlay = document.createElement('div');
+  overlay.className = 'drag-create';
+  track.appendChild(overlay);
+  dragState = { day, track, startMin, endMin: startMin, overlay };
+  pressState.started = true;
+  updateDragOverlay();
+}
+
+function switchTab(tab){
+  const cal = document.getElementById('tabCalendar');
+  const th = document.getElementById('tabThesis');
+  const bCal = document.getElementById('tabBtnCalendar');
+  const bTh = document.getElementById('tabBtnThesis');
+  const showCal = tab === 'calendar';
+  cal.classList.toggle('hidden', !showCal);
+  th.classList.toggle('hidden', showCal);
+  bCal.classList.toggle('active', showCal);
+  bTh.classList.toggle('active', !showCal);
+}
+
 function updateDragOverlay(){
   if (!dragState) return;
   const a = Math.min(dragState.startMin, dragState.endMin);
@@ -694,14 +751,26 @@ function updateDragOverlay(){
 
 window.addEventListener('mousemove', (ev) => {
   if (!dragState) return;
-  const rect = dragState.track.getBoundingClientRect();
-  const y = ev.clientY - rect.top;
-  const mins = visibleHourStart*60 + (y / HOUR_HEIGHT) * 60;
-  dragState.endMin = roundToQuarter(Math.max(visibleHourStart*60, Math.min(visibleHourEnd*60, mins)));
+  dragState.endMin = minuteFromPointer(dragState.track, ev.clientY);
   updateDragOverlay();
 });
 
 window.addEventListener('mouseup', () => {
+  // Handle press on existing event (click vs hold-drag)
+  if (pressState) {
+    clearTimeout(pressState.timer);
+    const src = pressState.event;
+    const started = pressState.started;
+    pressState = null;
+
+    if (!started) {
+      // Short click -> open details
+      openEventModal(src);
+      return;
+    }
+    // if started, fall through and finalize drag create below
+  }
+
   if (!dragState) return;
   const a = Math.min(dragState.startMin, dragState.endMin);
   const b = Math.max(dragState.startMin, dragState.endMin);
@@ -780,6 +849,7 @@ function initTheme(){
 }
 
 initTheme();
+switchTab('calendar');
 loadWeek();
 </script>
 </body>
