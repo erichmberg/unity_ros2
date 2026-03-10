@@ -286,6 +286,7 @@ let weekStart = getMonday(new Date());
 let selectedEvent = null;
 let modalEditMode = false;
 let dragState = null;
+const DRAG_MIN_MINUTES = 15;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -445,6 +446,7 @@ function buildWeekScaffold(){
 
     d.addEventListener('mousedown', (ev) => {
       if (ev.button !== 0) return;
+      if (ev.target.closest('.event-seg')) return; // clicking existing event should not start drag-create
       const rect = d.getBoundingClientRect();
       const y = ev.clientY - rect.top;
       const mins = visibleHourStart*60 + (y / HOUR_HEIGHT) * 60;
@@ -703,16 +705,20 @@ window.addEventListener('mouseup', () => {
   if (!dragState) return;
   const a = Math.min(dragState.startMin, dragState.endMin);
   const b = Math.max(dragState.startMin, dragState.endMin);
+  const span = Math.abs(b - a);
   const dayDate = new Date(weekStart);
   dayDate.setDate(dayDate.getDate() + dragState.day);
 
   dragState.overlay.remove();
-  const tooSmall = Math.abs(b - a) < 15;
-  const endMin = tooSmall ? a + 60 : b;
-  openCreateModal({
-    start: minutesToInput(dayDate, a),
-    end: minutesToInput(dayDate, endMin),
-  });
+
+  // Only open create flow if user dragged at least one quarter hour.
+  if (span >= DRAG_MIN_MINUTES) {
+    openCreateModal({
+      start: minutesToInput(dayDate, a),
+      end: minutesToInput(dayDate, b),
+    });
+  }
+
   dragState = null;
 });
 
