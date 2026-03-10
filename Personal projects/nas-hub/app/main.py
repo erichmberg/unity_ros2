@@ -134,21 +134,55 @@ def events(start: str, end: str):
     return {"items": out}
 
 
+def _create_event(calendar_id: str, summary: str, description: str, start_dt: str, end_dt: str, tz: str = "Europe/Stockholm"):
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+    created = svc.events().insert(calendarId=calendar_id, body={
+        "summary": summary,
+        "description": description or "",
+        "start": {"dateTime": start_dt, "timeZone": tz},
+        "end": {"dateTime": end_dt, "timeZone": tz},
+    }).execute()
+    return created
+
+
 @app.post("/api/events")
 async def create_event(request: Request):
     body = await request.json()
-    creds = get_google_creds()
-    svc = build("calendar", "v3", credentials=creds)
     try:
-        created = svc.events().insert(calendarId=body["calendarId"], body={
-            "summary": body["summary"],
-            "description": body.get("description", ""),
-            "start": {"dateTime": body["start"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
-            "end": {"dateTime": body["end"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
-        }).execute()
+        created = _create_event(
+            body["calendarId"],
+            body["summary"],
+            body.get("description", ""),
+            body["start"],
+            body["end"],
+            body.get("timeZone", "Europe/Stockholm"),
+        )
         return {"id": created.get("id"), "htmlLink": created.get("htmlLink")}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Create event failed: {e}")
+
+
+@app.post("/events/create")
+def create_event_form(
+    calendarId: str = Form(...),
+    summary: str = Form(...),
+    description: str = Form(""),
+    start_local: str = Form(...),
+    end_local: str = Form(...),
+):
+    try:
+        created = _create_event(
+            calendarId,
+            summary,
+            description,
+            f"{start_local}:00",
+            f"{end_local}:00",
+            "Europe/Stockholm",
+        )
+        return RedirectResponse(url=f"/?created={created.get('id')}", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/?error={urllib.parse.quote(str(e))}", status_code=303)
 
 
 @app.delete("/api/events/{calendar_id}/{event_id}")

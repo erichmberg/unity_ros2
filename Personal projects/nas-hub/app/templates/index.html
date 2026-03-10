@@ -33,17 +33,19 @@
 
     <div class="card">
       <h2>Create calendar event</h2>
-      <label>Calendar</label>
-      <select id="eventCalendar"></select>
-      <label>Title</label>
-      <input id="eventTitle" type="text" placeholder="Meeting" />
-      <label>Description</label>
-      <textarea id="eventDesc" rows="2" placeholder="Optional"></textarea>
-      <label>Start</label>
-      <input id="eventStart" type="datetime-local" />
-      <label>End</label>
-      <input id="eventEnd" type="datetime-local" />
-      <button id="createEventBtn" type="button">Create event</button>
+      <form method="post" action="/events/create">
+        <label>Calendar</label>
+        <select id="eventCalendar" name="calendarId" required></select>
+        <label>Title</label>
+        <input id="eventTitle" name="summary" type="text" placeholder="Meeting" required />
+        <label>Description</label>
+        <textarea id="eventDesc" name="description" rows="2" placeholder="Optional"></textarea>
+        <label>Start</label>
+        <input id="eventStart" name="start_local" type="datetime-local" required />
+        <label>End</label>
+        <input id="eventEnd" name="end_local" type="datetime-local" required />
+        <button type="submit">Create event</button>
+      </form>
       <p class="small">Default timezone: Europe/Stockholm</p>
     </div>
   </div>
@@ -131,42 +133,6 @@ async function loadToday(){
   document.getElementById('out').textContent = `Loaded ${items.length} events for today.`;
 }
 
-async function createEvent(){
-  const calendarId = document.getElementById('eventCalendar').value;
-  const summary = document.getElementById('eventTitle').value.trim();
-  const description = document.getElementById('eventDesc').value.trim();
-  const startRaw = document.getElementById('eventStart').value;
-  const endRaw = document.getElementById('eventEnd').value;
-
-  if (!calendarId || !summary || !startRaw || !endRaw){
-    alert('Fill calendar, title, start, and end.');
-    return;
-  }
-
-  const payload = {
-    calendarId,
-    summary,
-    description,
-    // Keep local wall-clock time (datetime-local), backend supplies Europe/Stockholm timezone
-    start: `${startRaw}:00`,
-    end: `${endRaw}:00`,
-    timeZone: 'Europe/Stockholm'
-  };
-
-  const r = await fetch('/api/events', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  });
-  const j = await r.json();
-  if (!r.ok){
-    document.getElementById('out').textContent = `Create failed: ${j.detail || 'Unknown error'}`;
-    return;
-  }
-  document.getElementById('out').textContent = `Created event: ${j.id || 'ok'}`;
-  await loadToday();
-}
-
 async function deleteEvent(calendarId, eventId){
   if (!confirm('Delete this event?')) return;
   const r = await fetch(`/api/events/${encodeURIComponent(calendarId)}/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
@@ -183,7 +149,6 @@ async function loadThesisSummary(days){
   document.getElementById('thesisSummary').textContent = JSON.stringify(j, null, 2);
 }
 
-document.getElementById('createEventBtn').addEventListener('click', createEvent);
 loadCalendars();
 </script>
 </body>
