@@ -92,11 +92,16 @@ def home(request: Request):
 
 
 @app.get("/api/calendars")
-def calendars():
+def calendars(include_holidays: bool = False):
     creds = get_google_creds()
     svc = build("calendar", "v3", credentials=creds)
     data = svc.calendarList().list(maxResults=100).execute()
-    items = [{"id": c["id"], "summary": c.get("summary", c["id"])} for c in data.get("items", [])]
+    items = []
+    for c in data.get("items", []):
+        cid = c["id"]
+        if not include_holidays and cid == "sv.swedish#holiday@group.v.calendar.google.com":
+            continue
+        items.append({"id": cid, "summary": c.get("summary", cid)})
     return {"items": items}
 
 
