@@ -2,7 +2,7 @@ default_velocity_scaling_factor: 0.2
 default_acceleration_scaling_factor: 0.2
 
 joint_limits:
-  rail_joint: {has_velocity_limits: true, max_velocity: 0.4, has_acceleration_limits: false}
+  rail_joint: {has_velocity_limits: true, max_velocity: 0.4, has_acceleration_limits: false, has_position_limits: true, min_position: -2.325, max_position: 2.325}
   shoulder_pan_joint: {has_velocity_limits: true, max_velocity: 2.16, has_acceleration_limits: false}
   shoulder_lift_joint: {has_velocity_limits: true, max_velocity: 2.16, has_acceleration_limits: false}
   elbow_joint: {has_velocity_limits: true, max_velocity: 2.16, has_acceleration_limits: false}
