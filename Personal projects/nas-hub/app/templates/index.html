@@ -401,6 +401,10 @@
         </div>
       </div>
       <div class="card" style="margin-top:12px;">
+        <h2>Upcoming deadlines</h2>
+        <div id="dashDeadlines" class="small">Loading…</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
         <h2>Quick actions</h2>
         <div class="btn-row">
           <button type="button" onclick="switchTab('calendar')">Open calendar</button>
@@ -1558,14 +1562,16 @@ async function loadDashboard(){
     const now = new Date();
     const s = new Date(now); s.setHours(0,0,0,0);
     const e = new Date(now); e.setDate(e.getDate()+14); e.setHours(23,59,59,999);
-    const [evR, sumR, inR] = await Promise.all([
+    const [evR, sumR, inR, dlR] = await Promise.all([
       fetch(`/api/events?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`),
       fetch('/api/thesis-summary?days=7'),
       fetch(`/api/thesis-insights?target_weekly_hours=${encodeURIComponent(getWeeklyTarget())}`),
+      fetch('/api/deadlines?status=active'),
     ]);
     const evJ = await evR.json();
     const sumJ = await sumR.json();
     const inJ = await inR.json();
+    const dlJ = await dlR.json();
 
     const todayEl = document.getElementById('dashTodayEvents');
     const events = (evJ.items || []).sort((a,b)=> new Date(a.start?.dateTime||0)-new Date(b.start?.dateTime||0));
@@ -1605,11 +1611,25 @@ async function loadDashboard(){
       <div><b>Total since start:</b> ${sumJ.totalProjectHours || 0}h</div>
       <div style="margin-top:8px;">${inJ.message || ''}</div>
     `;
+
+    const dlEl = document.getElementById('dashDeadlines');
+    const dls = (dlJ.items || []).slice(0,6);
+    if (!dls.length) {
+      dlEl.innerHTML = 'No active deadlines 🎉';
+    } else {
+      dlEl.innerHTML = dls.map(d => {
+        const doneBy = new Date(d.doneByAt).toLocaleString('sv-SE', {hour12:false, month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+        const deadlineAt = new Date(d.deadlineAt).toLocaleString('sv-SE', {hour12:false, month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+        return `<div style="margin-bottom:6px;"><b>${d.title}</b> <span style="opacity:.75;">(${d.course || '-'})</span><br><span style="opacity:.9;">Done by: ${doneBy} • Deadline: ${deadlineAt}</span></div>`;
+      }).join('');
+    }
   } catch (err) {
     const todayEl = document.getElementById('dashTodayEvents');
     const progEl = document.getElementById('dashThesisProgress');
+    const dlEl = document.getElementById('dashDeadlines');
     if (todayEl) todayEl.textContent = 'Failed to load dashboard.';
     if (progEl) progEl.textContent = String(err?.message || err);
+    if (dlEl) dlEl.textContent = 'Failed to load deadlines.';
   } finally {
     dashboardLoading = false;
   }
