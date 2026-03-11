@@ -289,20 +289,20 @@
     }
 
     .thesis-summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
-    .thesis-metric { border:1px solid #3a3a3a; background:#141414; border-radius:8px; padding:8px; }
-    .thesis-metric .k { font-size:11px; color:#b5b5b5; }
-    .thesis-metric .v { font-size:18px; font-weight:800; color:#f1f1f1; margin-top:2px; }
-    .thesis-list-box { margin-top:8px; border:1px solid #343434; background:#121212; border-radius:8px; padding:8px; }
-    .thesis-list-box b { color:#e6e6e6; }
-    .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#cfcfcf; }
+    .thesis-metric { border:1px solid #2f4a35; background:#111813; border-radius:8px; padding:8px; }
+    .thesis-metric .k { font-size:11px; color:#a9c8b0; }
+    .thesis-metric .v { font-size:18px; font-weight:800; color:#ddf5e3; margin-top:2px; }
+    .thesis-list-box { margin-top:8px; border:1px solid #31503a; background:#121a14; border-radius:8px; padding:8px; }
+    .thesis-list-box b { color:#d8f0de; }
+    .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#c6e3cc; }
     #thesisSummary { max-height: none; overflow: visible; }
 
-    body[data-theme="light"] .thesis-metric { border-color:#d8d8d8; background:#ffffff; }
-    body[data-theme="light"] .thesis-metric .k { color:#666; }
-    body[data-theme="light"] .thesis-metric .v { color:#111; }
-    body[data-theme="light"] .thesis-list-box { border-color:#d8d8d8; background:#ffffff; }
+    body[data-theme="light"] .thesis-metric { border-color:#b8d7c0; background:#f6fff7; }
+    body[data-theme="light"] .thesis-metric .k { color:#4f7a58; }
+    body[data-theme="light"] .thesis-metric .v { color:#1f4f2a; }
+    body[data-theme="light"] .thesis-list-box { border-color:#b8d7c0; background:#f8fff9; }
     body[data-theme="light"] .thesis-list-box b,
-    body[data-theme="light"] .thesis-list-box ul { color:#222; }
+    body[data-theme="light"] .thesis-list-box ul { color:#274430; }
     body[data-theme="light"] #thesisScheduleWindow { background:#fff7f7 !important; border-color:#d9aaaa !important; }
     body[data-theme="light"] .thesis-hour-rail { border-right-color:#d3a0a0; color:#7a5050; }
     body[data-theme="light"] .thesis-day-track { border-color:#d9b0b0; background: repeating-linear-gradient(to bottom, rgba(200,80,80,0.10) 0, rgba(200,80,80,0.10) 1px, transparent 1px, transparent var(--thesis-hour-h)); }
@@ -369,6 +369,13 @@
       color:#fff;
     }
 
+    .dash-card-calendar { border-color:#3b4d70; background:linear-gradient(180deg, rgba(42,62,102,0.15), rgba(18,20,26,0.2)); }
+    .dash-card-thesis { border-color:#31503a; background:linear-gradient(180deg, rgba(44,92,56,0.14), rgba(18,26,20,0.2)); }
+    .dash-card-deadlines { border-color:#6a2a2a; background:linear-gradient(180deg, rgba(120,35,35,0.14), rgba(26,18,18,0.2)); }
+    body[data-theme="light"] .dash-card-calendar { border-color:#c6d4ef; background:linear-gradient(180deg, rgba(232,240,255,0.8), rgba(255,255,255,0.9)); }
+    body[data-theme="light"] .dash-card-thesis { border-color:#b8d7c0; background:linear-gradient(180deg, rgba(235,249,238,0.9), rgba(255,255,255,0.95)); }
+    body[data-theme="light"] .dash-card-deadlines { border-color:#e0b7b7; background:linear-gradient(180deg, rgba(255,238,238,0.9), rgba(255,255,255,0.95)); }
+
     /* Deadline tab: keep neutral cards; only deadline entries (right column list) are color-accented inline. */
   </style>
 </head>
@@ -391,16 +398,16 @@
 
     <div id="tabDashboard" class="hidden">
       <div class="grid-2">
-        <div class="card">
+        <div class="card dash-card-calendar">
           <h2>Today focus</h2>
           <div id="dashTodayEvents" class="small">Loading…</div>
         </div>
-        <div class="card">
+        <div class="card dash-card-thesis">
           <h2>Thesis progress</h2>
           <div id="dashThesisProgress" class="small">Loading…</div>
         </div>
       </div>
-      <div class="card" style="margin-top:12px;">
+      <div class="card dash-card-deadlines" style="margin-top:12px;">
         <h2>Upcoming deadlines</h2>
         <div id="dashDeadlines" class="small">Loading…</div>
       </div>
@@ -522,7 +529,7 @@
     <div id="hoverTip" class="hover-tip"></div>
 
     <div id="tabThesis" class="hidden">
-    <div class="card">
+    <div class="card dash-card-thesis">
         <div class="modal-head" style="margin-bottom:8px;">
           <h2 style="margin:0;">Thesis summary</h2>
           <button id="thesisAddBtn" class="plus-btn" type="button" onclick="openThesisCreateModal()">＋</button>
