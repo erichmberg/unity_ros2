@@ -336,10 +336,11 @@ let dragState = null;
 let moveState = null;
 let pressState = null;
 let suppressNextOpen = false;
+let suppressNextOpenUntil = 0;
 const DRAG_MIN_MINUTES = 15;
-const PRESS_TO_DRAG_MS = 180;
-const MOVE_PIXELS_THRESHOLD_MOUSE = 6;
-const MOVE_PIXELS_THRESHOLD_TOUCH = 14;
+const PRESS_TO_DRAG_MS = 260;
+const MOVE_PIXELS_THRESHOLD_MOUSE = 12;
+const MOVE_PIXELS_THRESHOLD_TOUCH = 18;
 
 function setStatus(t){ document.getElementById('status').textContent = t; }
 function showLoading(text='Saving changes…'){
@@ -675,7 +676,7 @@ function renderWeekEvents(events){
 
         // Normal click (incl. light touchpad tap) opens details.
         el.onclick = () => {
-          if (suppressNextOpen) {
+          if (suppressNextOpen || Date.now() < suppressNextOpenUntil) {
             suppressNextOpen = false;
             return;
           }
@@ -827,7 +828,7 @@ function startPressDrag(){
 
   // Require some intentional pointer movement before turning event press into move-drag.
   if (pressState.kind === 'event') {
-    const threshold = pressState.movedPx <= 2 ? MOVE_PIXELS_THRESHOLD_TOUCH : MOVE_PIXELS_THRESHOLD_MOUSE;
+    const threshold = MOVE_PIXELS_THRESHOLD_TOUCH;
     if (pressState.movedPx < threshold) {
       return; // treat as click/tap, not drag
     }
@@ -841,6 +842,8 @@ function startPressDrag(){
   pressState.started = true;
 
   if (kind === 'event') {
+    suppressNextOpen = true;
+    suppressNextOpenUntil = Date.now() + 700;
     moveState = {
       event: pressState.event,
       day,
@@ -936,6 +939,7 @@ window.addEventListener('mouseup', async () => {
 
   if (moveState) {
     suppressNextOpen = true;
+    suppressNextOpenUntil = Date.now() + 900;
     const snapshot = moveState;
     moveState = null; // prevent ghost-follow while async update runs
     try {
