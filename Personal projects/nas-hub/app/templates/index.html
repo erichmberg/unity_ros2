@@ -606,6 +606,7 @@ let suppressNextOpenUntil = 0;
 let thesisLogsIndex = new Map();
 let thesisViewEndDate = new Date();
 let dashboardLoading = false;
+let dashboardNextEventTs = null;
 const DRAG_MIN_MINUTES = 15;
 const PRESS_TO_DRAG_MS = 260;
 const MOVE_PIXELS_THRESHOLD_MOUSE = 12;
@@ -1294,6 +1295,28 @@ function updateDragOverlay(){
   dragState.overlay.style.height = `${height}px`;
 }
 
+function formatCountdown(ms){
+  if (ms <= 0) return 'now';
+  const totalMin = Math.floor(ms / 60000);
+  const d = Math.floor(totalMin / (60*24));
+  const h = Math.floor((totalMin % (60*24)) / 60);
+  const m = totalMin % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function updateDashboardCountdown(){
+  const el = document.getElementById('dashNextCountdown');
+  if (!el) return;
+  if (!dashboardNextEventTs) {
+    el.textContent = '';
+    return;
+  }
+  const diff = dashboardNextEventTs - Date.now();
+  el.textContent = diff > 0 ? `Next event in ${formatCountdown(diff)}` : 'Next event now';
+}
+
 async function loadDashboard(){
   if (dashboardLoading) return;
   dashboardLoading = true;
@@ -1319,23 +1342,28 @@ async function loadDashboard(){
       return end >= now;
     });
 
+    const nextEv = events.find(ev => ev.start?.dateTime && new Date(ev.start.dateTime) > now);
+    dashboardNextEventTs = nextEv?.start?.dateTime ? new Date(nextEv.start.dateTime).getTime() : null;
+
     if (remainingToday.length) {
-      todayEl.innerHTML = `<div style="margin-bottom:8px;"><b>Remaining today</b></div>` + remainingToday.slice(0,8).map(ev => {
+      todayEl.innerHTML = `<div style="margin-bottom:8px;"><b>Remaining today</b></div><div id="dashNextCountdown" style="margin-bottom:8px; opacity:.85;"></div>` + remainingToday.slice(0,8).map(ev => {
         const t = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : 'All-day';
         return `<div style="margin-bottom:6px;"><b>${t}</b> — ${ev.summary || '(no title)'} <span style="opacity:.75;">(${ev.calendar || ''})</span></div>`;
       }).join('');
     } else {
-      const nextEv = events.find(ev => ev.start?.dateTime && new Date(ev.start.dateTime) > now);
       if (nextEv) {
         const d = new Date(nextEv.start.dateTime);
         const day = d.toLocaleDateString('sv-SE', {weekday:'short', month:'2-digit', day:'2-digit'});
         const t = d.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false});
         todayEl.innerHTML = `<div style="margin-bottom:8px;">All done for today ✅</div>`+
+          `<div id="dashNextCountdown" style="margin-bottom:8px; opacity:.85;"></div>`+
           `<div><b>Next event:</b> ${day} ${t} — ${nextEv.summary || '(no title)'} <span style="opacity:.75;">(${nextEv.calendar || ''})</span></div>`;
       } else {
+        dashboardNextEventTs = null;
         todayEl.innerHTML = '<div>All done for today ✅ No upcoming events in next 14 days.</div>';
       }
     }
+    updateDashboardCountdown();
 
     const progEl = document.getElementById('dashThesisProgress');
     progEl.innerHTML = `
@@ -1949,7 +1977,7 @@ if (targetField) targetField.value = String(getWeeklyTarget());
 const initialTab = localStorage.getItem('nasHubActiveTab') || 'dashboard';
 switchTab(initialTab === 'thesis' ? 'thesis' : (initialTab === 'calendar' ? 'calendar' : 'dashboard'));
 loadWeek();
-setInterval(updateNowIndicator, 30 * 1000);
+setInterval(() => { updateNowIndicator(); updateDashboardCountdown(); }, 30 * 1000);
 </script>
 </body>
 </html>
