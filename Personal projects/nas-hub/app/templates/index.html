@@ -1204,6 +1204,7 @@ function switchTab(tab){
   th.classList.toggle('hidden', showCal);
   bCal.classList.toggle('active', showCal);
   bTh.classList.toggle('active', !showCal);
+  localStorage.setItem('nasHubActiveTab', showCal ? 'calendar' : 'thesis');
 
   if (!showCal && !thesisAutoLoaded) {
     thesisAutoLoaded = true;
@@ -1702,7 +1703,8 @@ document.addEventListener('keydown', (ev) => {
 });
 
 initTheme();
-switchTab('calendar');
+const initialTab = localStorage.getItem('nasHubActiveTab') || 'calendar';
+switchTab(initialTab === 'thesis' ? 'thesis' : 'calendar');
 loadWeek();
 setInterval(updateNowIndicator, 30 * 1000);
 </script>
