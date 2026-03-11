@@ -101,6 +101,33 @@
       line-height: calc(var(--hour-height) - 4px);
       height: var(--hour-height);
       font-weight: 600;
+      position: relative;
+    }
+
+    .now-time-chip {
+      position: absolute;
+      right: 4px;
+      transform: translateY(-50%);
+      background: #ff5f5f;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+      z-index: 40;
+      display: none;
+      white-space: nowrap;
+    }
+
+    .now-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ff5f5f;
+      z-index: 30;
+      pointer-events: none;
+      display: none;
     }
 
     .day-track {
@@ -288,7 +315,7 @@
           <input id="mEnd" type="datetime-local" />
           <div class="btn-row">
             <button type="button" onclick="saveModalEvent()">Save changes</button>
-            <button type="button" onclick="deleteModalEvent()">Delete event</button>
+            <button type="button" class="danger-text-btn" onclick="deleteModalEvent()">Delete event</button>
           </div>
         </div>
       </div>
@@ -541,6 +568,10 @@ function buildWeekScaffold(){
     m.textContent=`${pad(h)}:00`;
     hourRail.appendChild(m);
   }
+  const chip = document.createElement('div');
+  chip.id = 'nowTimeChip';
+  chip.className = 'now-time-chip';
+  hourRail.appendChild(chip);
   body.appendChild(hourRail);
 
   for(let i=0;i<7;i++){
@@ -559,6 +590,10 @@ function buildWeekScaffold(){
       line.style.background = 'rgba(255,255,255,0.07)';
       d.appendChild(line);
     }
+
+    const nowLine = document.createElement('div');
+    nowLine.className = 'now-line';
+    d.appendChild(nowLine);
 
     d.addEventListener('mousedown', (ev) => {
       if (ev.button !== 0) return;
@@ -1114,12 +1149,39 @@ async function loadWeek(){
 
     buildWeekScaffold();
     renderWeekEvents(items);
+    updateNowIndicator();
     setStatus(`Loaded ${items.length} events this week. Visible hours: ${pad(visibleHourStart)}:00–${pad(visibleHourEnd)}:00`);
   } catch (err) {
     console.error(err);
     setStatus(`Failed to load week: ${err.message || err}`);
   } finally {
     hideLoading();
+  }
+}
+
+function updateNowIndicator(){
+  const now = new Date();
+  const mins = now.getHours()*60 + now.getMinutes();
+  const withinWeek = now >= weekStart && now < new Date(weekStart.getTime() + 7*24*60*60*1000);
+  const withinRange = mins >= visibleHourStart*60 && mins < visibleHourEnd*60;
+
+  const top = ((mins - visibleHourStart*60)/60) * HOUR_HEIGHT;
+  document.querySelectorAll('.now-line').forEach((line) => {
+    if (withinWeek && withinRange) {
+      line.style.display = 'block';
+      line.style.top = `${top}px`;
+    } else {
+      line.style.display = 'none';
+    }
+  });
+
+  const chip = document.getElementById('nowTimeChip');
+  if (chip && withinWeek && withinRange) {
+    chip.style.display = 'block';
+    chip.style.top = `${top}px`;
+    chip.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  } else if (chip) {
+    chip.style.display = 'none';
   }
 }
 
@@ -1166,6 +1228,7 @@ document.addEventListener('keydown', (ev) => {
 initTheme();
 switchTab('calendar');
 loadWeek();
+setInterval(updateNowIndicator, 30 * 1000);
 </script>
 </body>
 </html>
