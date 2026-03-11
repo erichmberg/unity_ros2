@@ -79,6 +79,14 @@
     .week-wrap { border: 1px solid var(--line); border-radius: 10px; overflow: auto; background: var(--bg); }
     .week-grid { min-width: 1050px; }
 
+    .month-grid { min-width: 1050px; }
+    .month-header { display:grid; grid-template-columns:repeat(7, minmax(var(--day-min-width), 1fr)); }
+    .month-header .cell { border-right:1px solid var(--line); border-bottom:1px solid var(--line); background:#141519; text-align:center; padding:8px 6px; color:var(--muted); font-size:12px; }
+    .month-body { display:grid; grid-template-columns:repeat(7, minmax(var(--day-min-width), 1fr)); grid-auto-rows:120px; }
+    .month-day { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:6px; overflow:hidden; }
+    .month-day-num { font-size:12px; opacity:.85; margin-bottom:4px; }
+    .month-event { font-size:11px; border:1px solid rgba(255,255,255,.22); border-radius:6px; padding:2px 4px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
     .week-header { display: grid; grid-template-columns: var(--hour-col) repeat(7, minmax(var(--day-min-width), 1fr)); }
     .week-header .cell {
       border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
@@ -412,7 +420,9 @@
             <button onclick="shiftWeek(-7)">← Previous</button>
             <button onclick="goToCurrentWeek()">Today</button>
             <button onclick="shiftWeek(7)">Next →</button>
-            <button onclick="loadWeek()">Refresh</button>
+            <button onclick="setCalendarView('week')">7-day</button>
+            <button onclick="setCalendarView('month')">Month</button>
+            <button onclick="loadCalendarView()">Refresh</button>
           </div>
         </div>
         <div id="weekLabel" class="small"></div>
@@ -661,6 +671,7 @@ let visibleHourStart = DEFAULT_HOUR_START;
 let visibleHourEnd = DEFAULT_HOUR_END;
 let calendars = [];
 let weekStart = getMonday(new Date());
+let calendarView = localStorage.getItem('nasHubCalendarView') || 'week';
 let selectedEvent = null;
 let modalEditMode = false;
 let dragState = null;
@@ -689,8 +700,19 @@ function hideLoading(){
 }
 function pad(n){ return String(n).padStart(2, '0'); }
 function getMonday(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
-function shiftWeek(days){ weekStart.setDate(weekStart.getDate()+days); loadWeek(); }
-function goToCurrentWeek(){ weekStart=getMonday(new Date()); loadWeek(); }
+function setCalendarView(view){
+  calendarView = view === 'month' ? 'month' : 'week';
+  localStorage.setItem('nasHubCalendarView', calendarView);
+  loadCalendarView();
+}
+
+function loadCalendarView(){
+  if (calendarView === 'month') return loadMonth();
+  return loadWeek();
+}
+
+function shiftWeek(days){ weekStart.setDate(weekStart.getDate()+days); loadCalendarView(); }
+function goToCurrentWeek(){ weekStart=getMonday(new Date()); loadCalendarView(); }
 
 function hashHue(str){ let h=0; for(let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h); return Math.abs(h)%360; }
 function eventGradient(cal){
@@ -1726,6 +1748,79 @@ window.addEventListener('mouseup', async () => {
   dragState = null;
 });
 
+async function loadMonth(){
+  setStatus('Loading month…');
+  try {
+    await loadCalendars();
+    const monthStart = new Date(weekStart);
+    monthStart.setDate(1);
+    monthStart.setHours(0,0,0,0);
+    const gridStart = getMonday(monthStart);
+    const gridEnd = new Date(gridStart); gridEnd.setDate(gridEnd.getDate()+42);
+
+    document.getElementById('weekLabel').textContent = `${monthStart.toLocaleDateString('sv-SE', {year:'numeric', month:'long'})}`;
+
+    const r = await fetch(`/api/events?start=${encodeURIComponent(gridStart.toISOString())}&end=${encodeURIComponent(gridEnd.toISOString())}`);
+    if (!r.ok) throw new Error(`Events API failed (${r.status})`);
+    const j = await r.json();
+    const items = j.items || [];
+
+    const byDay = new Map();
+    for (const e of items){
+      const raw = e.start?.dateTime || e.start?.date;
+      if (!raw) continue;
+      const d = new Date(raw);
+      const k = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      if (!byDay.has(k)) byDay.set(k, []);
+      byDay.get(k).push(e);
+    }
+
+    const grid = document.getElementById('weekGrid');
+    grid.className = 'month-grid';
+    grid.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'month-header';
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => { const c=document.createElement('div'); c.className='cell'; c.textContent=d; header.appendChild(c); });
+    grid.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'month-body';
+
+    for (let i=0;i<42;i++){
+      const d = new Date(gridStart); d.setDate(d.getDate()+i);
+      const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const cell = document.createElement('div');
+      cell.className = 'month-day';
+      const num = document.createElement('div');
+      num.className = 'month-day-num';
+      num.textContent = String(d.getDate());
+      cell.appendChild(num);
+
+      const evs = (byDay.get(key) || []).slice(0,4);
+      for (const ev of evs){
+        const box = document.createElement('div');
+        box.className = 'month-event';
+        box.style.background = eventGradient(ev.calendar || 'calendar');
+        const t = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+        const title = (ev.summary || '(no title)').slice(0,28);
+        box.textContent = `${t ? t + ' ' : ''}${title}`;
+        box.onclick = () => openEventModal(ev);
+        cell.appendChild(box);
+      }
+
+      if (d.getMonth() !== monthStart.getMonth()) cell.style.opacity = '0.55';
+      body.appendChild(cell);
+    }
+
+    grid.appendChild(body);
+    setStatus(`Loaded ${items.length} events in month view.`);
+  } catch (err) {
+    console.error(err);
+    setStatus(`Failed to load month: ${err.message || err}`);
+  } finally { hideLoading(); }
+}
+
 async function loadWeek(){
   setStatus('Loading week…');
   try {
@@ -1750,6 +1845,8 @@ async function loadWeek(){
     visibleHourStart = Math.max(0, Math.min(DEFAULT_HOUR_START, earliestHour));
     visibleHourEnd = DEFAULT_HOUR_END;
 
+    const gridEl = document.getElementById('weekGrid');
+    gridEl.className = 'week-grid';
     buildWeekScaffold();
     renderWeekEvents(items);
     updateNowIndicator();
@@ -2130,7 +2227,7 @@ function applyTheme(theme){
   const btn = document.getElementById('themeToggle');
   btn.textContent = theme === 'dark' ? 'Switch to Light' : 'Switch to Dark';
   // Repaint event gradients/text for new theme
-  if (typeof loadWeek === 'function') loadWeek();
+  if (typeof loadCalendarView === 'function') loadCalendarView();
 }
 
 function initTheme(){
@@ -2162,9 +2259,9 @@ initTheme();
 const targetField = document.getElementById('thesisWeeklyTarget');
 if (targetField) targetField.value = String(getWeeklyTarget());
 const initialTab = localStorage.getItem('nasHubActiveTab') || 'dashboard';
-switchTab(initialTab === 'thesis' ? 'thesis' : (initialTab === 'calendar' ? 'calendar' : 'dashboard'));
-loadWeek();
-setInterval(() => { updateNowIndicator(); updateDashboardCountdown(); }, 30 * 1000);
+switchTab(initialTab === 'thesis' ? 'thesis' : (initialTab === 'deadlines' ? 'deadlines' : (initialTab === 'calendar' ? 'calendar' : 'dashboard')));
+loadCalendarView();
+setInterval(() => { if (calendarView === 'week') updateNowIndicator(); updateDashboardCountdown(); }, 30 * 1000);
 </script>
 </body>
 </html>
