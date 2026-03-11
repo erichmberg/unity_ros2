@@ -332,7 +332,6 @@
             <option value="">Does not repeat</option>
             <option value="RRULE:FREQ=WEEKLY">Repeats weekly</option>
           </select>
-          <label><input id="mApplySeries" type="checkbox" style="width:auto; margin-right:6px;"/> Apply to entire series</label>
           <div class="btn-row">
             <button type="button" onclick="saveModalEvent()">Save changes</button>
             <button type="button" class="danger-text-btn" onclick="deleteModalEvent()">Delete event</button>
@@ -884,8 +883,6 @@ function openEventModal(ev){
 
   const rec = (ev.recurrence && ev.recurrence.length) ? ev.recurrence[0] : '';
   document.getElementById('mRecurrence').value = rec === 'RRULE:FREQ=WEEKLY' ? rec : '';
-  document.getElementById('mApplySeries').checked = false;
-  document.getElementById('mApplySeries').disabled = !ev.recurringEventId;
 
   setModalMode(false);
   document.getElementById('eventModalBackdrop').style.display = 'flex';
@@ -946,6 +943,11 @@ async function saveModalEvent(){
     return;
   }
 
+  let applySeries = false;
+  if (selectedEvent?.recurringEventId) {
+    applySeries = confirm('Apply these changes to the whole recurring series?\n\nOK = whole series\nCancel = only this event');
+  }
+
   const payload = {
     summary: document.getElementById('mTitle').value.trim(),
     description: document.getElementById('mDesc').value.trim(),
@@ -953,7 +955,7 @@ async function saveModalEvent(){
     end: combineDateAndTime(date, en),
     timeZone: 'Europe/Stockholm',
     recurrenceRule: document.getElementById('mRecurrence').value,
-    applySeries: document.getElementById('mApplySeries').checked,
+    applySeries,
     seriesEventId: selectedEvent?.recurringEventId || null,
   };
   showLoading('Saving event…');
@@ -971,7 +973,10 @@ async function deleteModalEvent(){
   if (!selectedEvent) return;
   if (!confirm('Delete this event?')) return;
   showLoading('Deleting event…');
-  const applySeries = document.getElementById('mApplySeries').checked;
+  let applySeries = false;
+  if (selectedEvent?.recurringEventId) {
+    applySeries = confirm('Delete whole recurring series?\n\nOK = whole series\nCancel = only this event');
+  }
   const q = new URLSearchParams();
   if (applySeries) {
     q.set('applySeries', 'true');
