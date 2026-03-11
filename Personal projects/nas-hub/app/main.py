@@ -396,6 +396,34 @@ async def create_deadline(request: Request):
     deadline_at = datetime.fromisoformat(body["deadlineAt"])
     done_by_at = datetime.fromisoformat(body["doneByAt"])
     cal_id = body.get("calendarId") or "eric.hm.berg@gmail.com"
+    tz = body.get("timeZone", "Europe/Stockholm")
+
+    debug = {
+        "calendarId": cal_id,
+        "timeZone": tz,
+        "deadlineAt": deadline_at.isoformat(),
+        "doneByAt": done_by_at.isoformat(),
+    }
+
+    # Probe calendar access first for clearer error output.
+    try:
+        creds = get_google_creds()
+        svc = build("calendar", "v3", credentials=creds)
+        svc.events().list(
+            calendarId=cal_id,
+            singleEvents=True,
+            orderBy="startTime",
+            timeMin=datetime.utcnow().isoformat() + "Z",
+            timeMax=(datetime.utcnow() + timedelta(days=1)).isoformat() + "Z",
+            maxResults=1,
+        ).execute()
+        debug["calendarProbe"] = "ok"
+    except Exception as e:
+        debug["calendarProbe"] = f"failed: {e}"
+        raise HTTPException(status_code=400, detail={"message": "Calendar probe failed", "debug": debug})
+
+    deadline_ev = None
+    doneby_ev = None
 
     try:
         deadline_ev = _create_event(
@@ -404,18 +432,26 @@ async def create_deadline(request: Request):
             body.get("notes", ""),
             deadline_at.isoformat(),
             (deadline_at + timedelta(hours=1)).isoformat(),
-            body.get("timeZone", "Europe/Stockholm"),
+            tz,
         )
+        debug["deadlineEventId"] = deadline_ev.get("id")
+    except Exception as e:
+        debug["deadlineCreateError"] = str(e)
+        raise HTTPException(status_code=400, detail={"message": "Failed creating deadline event", "debug": debug})
+
+    try:
         doneby_ev = _create_event(
             cal_id,
             f"Done by: {title}",
             f"Target completion for: {title}\n\n{body.get('notes','')}",
             done_by_at.isoformat(),
             (done_by_at + timedelta(hours=1)).isoformat(),
-            body.get("timeZone", "Europe/Stockholm"),
+            tz,
         )
+        debug["doneByEventId"] = doneby_ev.get("id")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Calendar sync failed: {e}")
+        debug["doneByCreateError"] = str(e)
+        raise HTTPException(status_code=400, detail={"message": "Failed creating done-by event", "debug": debug})
 
     with Session(engine) as db:
         d = Deadline(
@@ -445,6 +481,7 @@ async def create_deadline(request: Request):
         "deadlineEventLink": deadline_ev.get("htmlLink"),
         "doneByEventId": doneby_ev.get("id"),
         "doneByEventLink": doneby_ev.get("htmlLink"),
+        "debug": debug,
     }
 
 

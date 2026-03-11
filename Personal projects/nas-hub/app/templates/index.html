@@ -1428,7 +1428,16 @@ async function createDeadline(){
   showLoading('Creating deadline…');
   const r = await fetch('/api/deadlines', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
   const j = await r.json().catch(()=>({}));
-  if (!r.ok) { hideLoading(); alert(j.detail || 'Create deadline failed'); return; }
+  if (!r.ok) {
+    hideLoading();
+    const detail = j?.detail;
+    if (detail && typeof detail === 'object') {
+      alert(`Create deadline failed: ${detail.message || 'unknown'}\n\nDebug:\n${JSON.stringify(detail.debug || {}, null, 2)}`);
+    } else {
+      alert(detail || 'Create deadline failed');
+    }
+    return;
+  }
 
   // Jump calendar view to done-by week so the new events are visible immediately.
   weekStart = getMonday(new Date(payload.doneByAt));
