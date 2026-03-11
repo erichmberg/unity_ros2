@@ -181,14 +181,18 @@ def events(start: str, end: str):
     for c in cal_list:
         cal_id = c["id"]
         cal_name = c.get("summary", cal_id)
-        ev = svc.events().list(
-            calendarId=cal_id,
-            singleEvents=True,
-            orderBy="startTime",
-            timeMin=start,
-            timeMax=end,
-            maxResults=50,
-        ).execute().get("items", [])
+        try:
+            ev = svc.events().list(
+                calendarId=cal_id,
+                singleEvents=True,
+                orderBy="startTime",
+                timeMin=start,
+                timeMax=end,
+                maxResults=50,
+            ).execute().get("items", [])
+        except Exception:
+            # Skip problematic/inaccessible calendars instead of failing the whole endpoint.
+            continue
         for e in ev:
             out.append({
                 "calendarId": cal_id,
