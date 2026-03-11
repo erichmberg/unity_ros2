@@ -437,7 +437,15 @@ async def create_deadline(request: Request):
         db.commit()
         db.refresh(d)
 
-    return {"ok": True, "id": d.id}
+    return {
+        "ok": True,
+        "id": d.id,
+        "calendarId": cal_id,
+        "deadlineEventId": deadline_ev.get("id"),
+        "deadlineEventLink": deadline_ev.get("htmlLink"),
+        "doneByEventId": doneby_ev.get("id"),
+        "doneByEventLink": doneby_ev.get("htmlLink"),
+    }
 
 
 @app.put("/api/deadlines/{deadline_id}")

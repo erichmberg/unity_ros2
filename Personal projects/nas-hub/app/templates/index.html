@@ -339,11 +339,7 @@
     body[data-theme="light"] .event-title,
     body[data-theme="light"] .event-meta { color:#111827; text-shadow:none; }
 
-    #tabDeadlines .card { border-color:#5f1717; background:linear-gradient(180deg, rgba(60,10,10,0.22), rgba(20,20,20,0.35)); }
-    #tabDeadlines h2 { color:#ffb3b3; }
-    #tabDeadlines input, #tabDeadlines select, #tabDeadlines textarea { border-color:#7a2b2b; }
-    body[data-theme="light"] #tabDeadlines .card { border-color:#e2b1b1; background:linear-gradient(180deg, rgba(255,238,238,0.9), rgba(255,255,255,0.95)); }
-    body[data-theme="light"] #tabDeadlines h2 { color:#7d2525; }
+    /* Deadline tab: keep neutral cards; only deadline entries (right column list) are color-accented inline. */
   </style>
 </head>
 <body>
@@ -1383,10 +1379,15 @@ async function loadDeadlines(){
     el.innerHTML = 'No deadlines yet.';
     return;
   }
+  const light = (document.body.getAttribute('data-theme') || 'dark') === 'light';
+  const rowStyle = light
+    ? 'border:1px solid #d9aaaa; background:linear-gradient(180deg, rgba(255,232,232,0.95), rgba(255,250,250,0.98)); border-radius:8px; padding:8px; margin-bottom:8px;'
+    : 'border:1px solid #7a2b2b; background:linear-gradient(180deg, rgba(120,20,20,0.25), rgba(25,25,25,0.25)); border-radius:8px; padding:8px; margin-bottom:8px;';
+
   el.innerHTML = items.map(d => {
     const doneBy = new Date(d.doneByAt).toLocaleString('sv-SE', {hour12:false});
     const deadlineAt = new Date(d.deadlineAt).toLocaleString('sv-SE', {hour12:false});
-    return `<div style="border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px;">`+
+    return `<div style="${rowStyle}">`+
       `<div><b>${d.title}</b> <span style="opacity:.75;">(${d.course || '-'})</span></div>`+
       `<div>Done by: <b>${doneBy}</b></div>`+
       `<div>Deadline: <b>${deadlineAt}</b></div>`+
@@ -1416,6 +1417,8 @@ async function createDeadline(){
   if (!r.ok) { hideLoading(); alert(j.detail || 'Create deadline failed'); return; }
   hideLoading();
   await loadDeadlines();
+  try { await loadWeek(); } catch {}
+  alert(`Deadline created ✅\nCalendar: ${j.calendarId || payload.calendarId}\nDone-by event: ${j.doneByEventId || '-'}\nDeadline event: ${j.deadlineEventId || '-'}`);
 }
 
 async function markDeadlineDone(id){
