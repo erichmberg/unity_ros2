@@ -160,74 +160,48 @@ def home(request: Request):
 
 @app.get("/api/calendars")
 def calendars(include_holidays: bool = False):
-    try:
-        creds = get_google_creds()
-        svc = build("calendar", "v3", credentials=creds)
-        data = svc.calendarList().list(maxResults=100).execute()
-        items = []
-        for c in data.get("items", []):
-            cid = c.get("id")
-            if not cid:
-                continue
-            if not include_holidays and cid == "sv.swedish#holiday@group.v.calendar.google.com":
-                continue
-            # Ensure returned calendars are actually readable; skip inaccessible ones.
-            try:
-                svc.events().list(
-                    calendarId=cid,
-                    singleEvents=True,
-                    orderBy="startTime",
-                    timeMin=datetime.utcnow().isoformat() + "Z",
-                    timeMax=(datetime.utcnow() + timedelta(days=1)).isoformat() + "Z",
-                    maxResults=1,
-                ).execute()
-            except Exception:
-                continue
-            items.append({"id": cid, "summary": c.get("summary", cid)})
-        return {"items": items}
-    except Exception as e:
-        return {"items": [], "warning": f"calendar_backend_error: {e}"}
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+    data = svc.calendarList().list(maxResults=100).execute()
+    items = []
+    for c in data.get("items", []):
+        cid = c["id"]
+        if not include_holidays and cid == "sv.swedish#holiday@group.v.calendar.google.com":
+            continue
+        items.append({"id": cid, "summary": c.get("summary", cid)})
+    return {"items": items}
 
 
 @app.get("/api/events")
 def events(start: str, end: str):
-    try:
-        creds = get_google_creds()
-        svc = build("calendar", "v3", credentials=creds)
-        cal_list = svc.calendarList().list(maxResults=100).execute().get("items", [])
-        out = []
-        for c in cal_list:
-            cal_id = c.get("id")
-            if not cal_id:
-                continue
-            cal_name = c.get("summary", cal_id)
-            try:
-                ev = svc.events().list(
-                    calendarId=cal_id,
-                    singleEvents=True,
-                    orderBy="startTime",
-                    timeMin=start,
-                    timeMax=end,
-                    maxResults=50,
-                ).execute().get("items", [])
-            except Exception:
-                # Skip problematic/inaccessible calendars instead of failing the whole endpoint.
-                continue
-            for e in ev:
-                out.append({
-                    "calendarId": cal_id,
-                    "calendar": cal_name,
-                    "id": e.get("id"),
-                    "summary": e.get("summary", "(no title)"),
-                    "description": e.get("description", ""),
-                    "start": e.get("start", {}),
-                    "end": e.get("end", {}),
-                    "recurrence": e.get("recurrence", []),
-                    "recurringEventId": e.get("recurringEventId"),
-                })
-        return {"items": out}
-    except Exception as e:
-        return {"items": [], "warning": f"calendar_backend_error: {e}"}
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+    cal_list = svc.calendarList().list(maxResults=100).execute().get("items", [])
+    out = []
+    for c in cal_list:
+        cal_id = c["id"]
+        cal_name = c.get("summary", cal_id)
+        ev = svc.events().list(
+            calendarId=cal_id,
+            singleEvents=True,
+            orderBy="startTime",
+            timeMin=start,
+            timeMax=end,
+            maxResults=50,
+        ).execute().get("items", [])
+        for e in ev:
+            out.append({
+                "calendarId": cal_id,
+                "calendar": cal_name,
+                "id": e.get("id"),
+                "summary": e.get("summary", "(no title)"),
+                "description": e.get("description", ""),
+                "start": e.get("start", {}),
+                "end": e.get("end", {}),
+                "recurrence": e.get("recurrence", []),
+                "recurringEventId": e.get("recurringEventId"),
+            })
+    return {"items": out}
 
 
 def _create_event(calendar_id: str, summary: str, description: str, start_dt: str, end_dt: str, tz: str = "Europe/Stockholm", recurrence_rule: str | None = None):
