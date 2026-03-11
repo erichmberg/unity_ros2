@@ -205,7 +205,7 @@
       color: #d9a3a3;
       font-size: 11px;
     }
-    .thesis-week-wrap { margin-top: 4px; overflow-x: auto; padding-bottom: 4px; }
+    .thesis-week-wrap { margin-top: 4px; overflow: visible; padding-bottom: 4px; }
     .thesis-week-header {
       display: grid;
       gap: 6px;
@@ -1595,7 +1595,7 @@ async function loadThesisSummary(days){
     rail += `<div class="thesis-hour-mark" style="top:${y}px;">${pad(h%24)}:00</div>`;
   }
 
-  const minCol = (Number(days) > 7 || Number(days) === 0) ? 96 : 0;
+  const minCol = 0;
   const rowSize = (Number(days) > 7 || Number(days) === 0) ? 7 : displayDays.length;
   const rows = [];
   for (let i=0; i<displayDays.length; i+=rowSize) rows.push(displayDays.slice(i, i+rowSize));
