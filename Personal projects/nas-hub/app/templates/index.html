@@ -263,7 +263,7 @@
       box-shadow: 0 4px 10px rgba(0,0,0,.35);
     }
 
-    .thesis-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .thesis-summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
     .thesis-metric { border:1px solid #3a3a3a; background:#141414; border-radius:8px; padding:8px; }
     .thesis-metric .k { font-size:11px; color:#b5b5b5; }
     .thesis-metric .v { font-size:18px; font-weight:800; color:#f1f1f1; margin-top:2px; }
@@ -1437,6 +1437,7 @@ async function loadThesisSummary(days){
       `<div class="thesis-metric"><div class="k">Range</div><div class="v">Last ${esc(summary.days || 0)} days</div></div>`+
       `<div class="thesis-metric"><div class="k">Entries</div><div class="v">${esc(summary.entries || 0)}</div></div>`+
       `<div class="thesis-metric"><div class="k">Hours</div><div class="v">${esc(summary.hours || 0)}h</div></div>`+
+      `<div class="thesis-metric"><div class="k">Total since start</div><div class="v">${esc(summary.totalProjectHours || 0)}h</div></div>`+
     `</div>`+
     `<div class="thesis-list-box"><b>Hours by task type</b><ul>${typeRows}</ul></div>`+
     `<div class="thesis-list-box"><b>Outcomes</b><ul>${outcomes}</ul></div>`+
@@ -1456,31 +1457,40 @@ async function loadThesisSummary(days){
   const totalH = (endHour - startHour) * hourH;
   wrap.style.setProperty('--thesis-hour-h', `${hourH}px`);
 
-  // Show one week view (Mon-Fri always), add weekend columns only if logs exist that weekend.
-  const latestLogDate = new Date(Math.max(...logs.map(l => new Date(l.startedAt).getTime())));
-  const weekStart = getMonday(latestLogDate);
-  const weekDays = [];
-  for (let i=0; i<5; i++) {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate()+i);
-    weekDays.push(d);
-  }
-  const sat = new Date(weekStart); sat.setDate(sat.getDate()+5);
-  const sun = new Date(weekStart); sun.setDate(sun.getDate()+6);
-  const hasSat = logs.some(l => {
-    const d = new Date(l.startedAt);
-    return d.toDateString() === sat.toDateString();
-  });
-  const hasSun = logs.some(l => {
-    const d = new Date(l.startedAt);
-    return d.toDateString() === sun.toDateString();
-  });
-  if (hasSat) weekDays.push(sat);
-  if (hasSun) weekDays.push(sun);
-
+  // Rolling last N days view (default 7): include weekend columns only when they have entries.
   const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const rangeDays = Number(days) || 7;
+  const startRange = new Date(today);
+  startRange.setDate(startRange.getDate() - (rangeDays - 1));
+
+  const allDays = [];
+  for (let i=0; i<rangeDays; i++) {
+    const d = new Date(startRange);
+    d.setDate(d.getDate() + i);
+    allDays.push(d);
+  }
+
+  const hasLogOn = (d) => logs.some(l => {
+    const x = new Date(l.startedAt);
+    return x.toDateString() === d.toDateString();
+  });
+
+  const displayDays = allDays.filter(d => {
+    const wd = d.getDay(); // 0 Sun, 6 Sat
+    if (wd !== 0 && wd !== 6) return true;
+    return hasLogOn(d);
+  });
+
+  if (!displayDays.length) {
+    wrap.innerHTML = '<div style="color:#d8a8a8;">No weekday logs in this range.</div>';
+    return;
+  }
+
   const grouped = new Map();
-  for (const d of weekDays) grouped.set(dayKey(d), []);
+  for (const d of displayDays) grouped.set(dayKey(d), []);
   for (const l of logs) {
     const d = new Date(l.startedAt);
     const k = dayKey(d);
@@ -1493,10 +1503,10 @@ async function loadThesisSummary(days){
     rail += `<div class="thesis-hour-mark" style="top:${y}px;">${pad(h%24)}:00</div>`;
   }
 
-  const colCount = weekDays.length;
+  const colCount = displayDays.length;
   let header = '';
   let cols = '';
-  for (const d of weekDays) {
+  for (const d of displayDays) {
     const k = dayKey(d);
     const items = grouped.get(k) || [];
     const name = d.toLocaleDateString('sv-SE', { weekday:'short' });

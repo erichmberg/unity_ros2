@@ -425,8 +425,10 @@ def thesis_summary(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
     with Session(engine) as db:
         logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff)).all()
+        all_logs = db.scalars(select(ThesisLog)).all()
 
     total = round(sum(l.hours for l in logs), 2)
+    total_project_hours = round(sum(l.hours for l in all_logs), 2)
 
     by_task_type = {}
     outcomes = []
@@ -456,6 +458,7 @@ def thesis_summary(days: int = 7):
         "days": days,
         "entries": len(logs),
         "hours": total,
+        "totalProjectHours": total_project_hours,
         "hoursByTaskType": by_task_type,
         "weeklyHighlights": {
             "outcomes": outcomes[-5:],
