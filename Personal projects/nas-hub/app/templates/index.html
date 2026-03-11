@@ -2117,11 +2117,13 @@ async function loadThesisSummary(days){
         const top = ((sm - startHour*60) / 60) * hourH;
         const height = Math.max(16, ((em - sm) / 60) * hourH);
         const clampedTop = Math.max(0, Math.min(totalH - 16, top));
-        const isCompact = height < 28;
+        const isCompact = height < 40;
+        const isUltraCompact = height < 22;
         const compactCls = isCompact ? ' compact' : '';
         const metaLine = isCompact ? '' : `<div style="font-size:11px; opacity:.9; margin-top:2px;">${esc(String(it.hours))}h · ${esc(it.taskType || 'uncategorized')}</div>`;
+        const titleLine = isUltraCompact ? '' : `<div style="font-weight:700; overflow-wrap:anywhere;">${esc(it.summary)}</div>`;
         blocks += `<div class="thesis-event-block${compactCls}" data-log-id="${esc(String(it.id))}" onclick="openThesisLogModal('${esc(String(it.id))}')" style="top:${clampedTop}px; height:${height}px; cursor:pointer;" title="${esc(it.summary)}">`+
-                  `<div style="font-weight:700; overflow-wrap:anywhere;">${esc(it.summary)}</div>`+
+                  `${titleLine}`+
                   `${metaLine}`+
                   `</div>`;
       }
