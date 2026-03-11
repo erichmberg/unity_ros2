@@ -1300,7 +1300,7 @@ async function loadDashboard(){
   try {
     const now = new Date();
     const s = new Date(now); s.setHours(0,0,0,0);
-    const e = new Date(now); e.setHours(23,59,59,999);
+    const e = new Date(now); e.setDate(e.getDate()+14); e.setHours(23,59,59,999);
     const [evR, sumR, inR] = await Promise.all([
       fetch(`/api/events?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`),
       fetch('/api/thesis-summary?days=7'),
@@ -1312,13 +1312,29 @@ async function loadDashboard(){
 
     const todayEl = document.getElementById('dashTodayEvents');
     const events = (evJ.items || []).sort((a,b)=> new Date(a.start?.dateTime||0)-new Date(b.start?.dateTime||0));
-    if (!events.length) {
-      todayEl.innerHTML = '<div>No events today 🎉</div>';
-    } else {
-      todayEl.innerHTML = events.slice(0,8).map(ev => {
+    const todayKey = now.toDateString();
+    const todayEvents = events.filter(ev => ev.start?.dateTime && new Date(ev.start.dateTime).toDateString() === todayKey);
+    const remainingToday = todayEvents.filter(ev => {
+      const end = ev.end?.dateTime ? new Date(ev.end.dateTime) : new Date(ev.start?.dateTime || 0);
+      return end >= now;
+    });
+
+    if (remainingToday.length) {
+      todayEl.innerHTML = `<div style="margin-bottom:8px;"><b>Remaining today</b></div>` + remainingToday.slice(0,8).map(ev => {
         const t = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : 'All-day';
         return `<div style="margin-bottom:6px;"><b>${t}</b> — ${ev.summary || '(no title)'} <span style="opacity:.75;">(${ev.calendar || ''})</span></div>`;
       }).join('');
+    } else {
+      const nextEv = events.find(ev => ev.start?.dateTime && new Date(ev.start.dateTime) > now);
+      if (nextEv) {
+        const d = new Date(nextEv.start.dateTime);
+        const day = d.toLocaleDateString('sv-SE', {weekday:'short', month:'2-digit', day:'2-digit'});
+        const t = d.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false});
+        todayEl.innerHTML = `<div style="margin-bottom:8px;">All done for today ✅</div>`+
+          `<div><b>Next event:</b> ${day} ${t} — ${nextEv.summary || '(no title)'} <span style="opacity:.75;">(${nextEv.calendar || ''})</span></div>`;
+      } else {
+        todayEl.innerHTML = '<div>All done for today ✅ No upcoming events in next 14 days.</div>';
+      }
     }
 
     const progEl = document.getElementById('dashThesisProgress');
