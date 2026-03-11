@@ -397,22 +397,25 @@ async def create_deadline(request: Request):
     done_by_at = datetime.fromisoformat(body["doneByAt"])
     cal_id = body.get("calendarId") or "eric.hm.berg@gmail.com"
 
-    deadline_ev = _create_event(
-        cal_id,
-        f"Deadline: {title}",
-        body.get("notes", ""),
-        deadline_at.isoformat(),
-        (deadline_at + timedelta(hours=1)).isoformat(),
-        body.get("timeZone", "Europe/Stockholm"),
-    )
-    doneby_ev = _create_event(
-        cal_id,
-        f"Done by: {title}",
-        f"Target completion for: {title}\n\n{body.get('notes','')}",
-        done_by_at.isoformat(),
-        (done_by_at + timedelta(hours=1)).isoformat(),
-        body.get("timeZone", "Europe/Stockholm"),
-    )
+    try:
+        deadline_ev = _create_event(
+            cal_id,
+            f"Deadline: {title}",
+            body.get("notes", ""),
+            deadline_at.isoformat(),
+            (deadline_at + timedelta(hours=1)).isoformat(),
+            body.get("timeZone", "Europe/Stockholm"),
+        )
+        doneby_ev = _create_event(
+            cal_id,
+            f"Done by: {title}",
+            f"Target completion for: {title}\n\n{body.get('notes','')}",
+            done_by_at.isoformat(),
+            (done_by_at + timedelta(hours=1)).isoformat(),
+            body.get("timeZone", "Europe/Stockholm"),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Calendar sync failed: {e}")
 
     with Session(engine) as db:
         d = Deadline(

@@ -338,6 +338,12 @@
     }
     body[data-theme="light"] .event-title,
     body[data-theme="light"] .event-meta { color:#111827; text-shadow:none; }
+
+    #tabDeadlines .card { border-color:#5f1717; background:linear-gradient(180deg, rgba(60,10,10,0.22), rgba(20,20,20,0.35)); }
+    #tabDeadlines h2 { color:#ffb3b3; }
+    #tabDeadlines input, #tabDeadlines select, #tabDeadlines textarea { border-color:#7a2b2b; }
+    body[data-theme="light"] #tabDeadlines .card { border-color:#e2b1b1; background:linear-gradient(180deg, rgba(255,238,238,0.9), rgba(255,255,255,0.95)); }
+    body[data-theme="light"] #tabDeadlines h2 { color:#7d2525; }
   </style>
 </head>
 <body>
@@ -519,6 +525,8 @@
           <input id="dTitle" type="text" placeholder="Assignment name" />
           <label>Course/Project</label>
           <input id="dCourse" type="text" placeholder="Course or project" />
+          <label>Calendar</label>
+          <select id="dCalendar"></select>
           <label>Done by (24h)</label>
           <input id="dDoneBy" type="datetime-local" />
           <label>Hard deadline (24h)</label>
@@ -697,14 +705,18 @@ async function loadCalendars(){
   const j = await r.json();
   calendars = j.items || [];
 
-  const sel = document.getElementById('cCalendar');
-  if (sel){
+  const sels = [document.getElementById('cCalendar'), document.getElementById('dCalendar')].filter(Boolean);
+  for (const sel of sels){
     sel.innerHTML='';
     for(const c of calendars){
       const o=document.createElement('option');
       o.value=c.id;
       o.textContent=c.summary;
       sel.appendChild(o);
+    }
+    if (sel.id === 'dCalendar' && calendars.length) {
+      const preferred = calendars.find(x => x.id === 'eric.hm.berg@gmail.com')?.id || calendars[0].id;
+      sel.value = preferred;
     }
   }
 
@@ -1360,6 +1372,9 @@ function updateDashboardCountdown(){
 }
 
 async function loadDeadlines(){
+  if (!calendars.length) {
+    try { await loadCalendars(); } catch {}
+  }
   const r = await fetch('/api/deadlines');
   const j = await r.json();
   const items = (j.items || []);
@@ -1391,7 +1406,7 @@ async function createDeadline(){
     remindEveryDays: Number(document.getElementById('dEveryDays').value || 2),
     priority: document.getElementById('dPriority').value,
     notes: document.getElementById('dNotes').value.trim(),
-    calendarId: 'eric.hm.berg@gmail.com',
+    calendarId: document.getElementById('dCalendar').value || 'eric.hm.berg@gmail.com',
     timeZone: 'Europe/Stockholm',
   };
   if (!payload.title || !payload.doneByAt || !payload.deadlineAt) { alert('Fill title, done-by, and deadline.'); return; }
