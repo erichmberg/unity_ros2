@@ -390,9 +390,12 @@ def _record_history(db: Session, action: str, payload: dict):
 
 @app.get("/api/thesis-logs")
 def thesis_logs(days: int = 7):
-    cutoff = datetime.now() - timedelta(days=days)
     with Session(engine) as db:
-        logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff).order_by(ThesisLog.started_at.asc())).all()
+        if days and days > 0:
+            cutoff = datetime.now() - timedelta(days=days)
+            logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff).order_by(ThesisLog.started_at.asc())).all()
+        else:
+            logs = db.scalars(select(ThesisLog).order_by(ThesisLog.started_at.asc())).all()
 
     items = []
     for l in logs:
@@ -580,9 +583,12 @@ def thesis_insights(target_weekly_hours: float = 20.0):
 
 @app.get("/api/thesis-summary")
 def thesis_summary(days: int = 7):
-    cutoff = datetime.now() - timedelta(days=days)
     with Session(engine) as db:
-        logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff)).all()
+        if days and days > 0:
+            cutoff = datetime.now() - timedelta(days=days)
+            logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff)).all()
+        else:
+            logs = db.scalars(select(ThesisLog)).all()
         all_logs = db.scalars(select(ThesisLog)).all()
 
     total = round(sum(l.hours for l in logs), 2)

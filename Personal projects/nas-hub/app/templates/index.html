@@ -205,7 +205,7 @@
       color: #d9a3a3;
       font-size: 11px;
     }
-    .thesis-week-wrap { margin-top: 4px; }
+    .thesis-week-wrap { margin-top: 4px; overflow-x: auto; padding-bottom: 4px; }
     .thesis-week-header {
       display: grid;
       gap: 6px;
@@ -270,6 +270,7 @@
     .thesis-list-box { margin-top:8px; border:1px solid #343434; background:#121212; border-radius:8px; padding:8px; }
     .thesis-list-box b { color:#e6e6e6; }
     .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#cfcfcf; }
+    #thesisSummary { max-height: 260px; overflow: auto; }
 
     body[data-theme="light"] .thesis-metric { border-color:#d8d8d8; background:#ffffff; }
     body[data-theme="light"] .thesis-metric .k { color:#666; }
@@ -501,12 +502,12 @@
           <button type="button" onclick="shiftThesisWindow(-7)">← Prev week</button>
           <button type="button" onclick="shiftThesisWindow(7)">Next week →</button>
           <button type="button" onclick="undoLastThesisAction()">Undo last</button>
-          <button type="button" onclick="exportThesisCsv(false)">Export CSV</button>
-          <button type="button" onclick="exportThesisCsv(true)">Export all CSV</button>
+          <button type="button" onclick="exportThesisCsvPrompt()">Export CSV</button>
           <label for="thesisRangeDays" style="margin:0 0 0 8px; font-size:12px; opacity:.9;">Range</label>
           <select id="thesisRangeDays" onchange="loadThesisSummary(Number(this.value))" style="max-width:180px;">
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
+            <option value="0">All time</option>
           </select>
         </div>
         <div id="thesisInsight" class="thesis-list-box" style="margin-top:10px;"></div>
@@ -1464,9 +1465,6 @@ async function loadThesisSummary(days){
 
   const d = new Date(thesisViewEndDate);
   d.setHours(23,59,59,999);
-  const start = new Date(d);
-  start.setDate(start.getDate() - (Number(days)-1));
-  start.setHours(0,0,0,0);
 
   const [sr, lr, ir] = await Promise.all([
     fetch(`/api/thesis-summary?days=${days}`),
@@ -1495,23 +1493,41 @@ async function loadThesisSummary(days){
   const blockers = (highlights.blockers || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>None</li>';
   const nextActions = (highlights.nextActions || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>None</li>';
 
+  const rangeLabel = Number(days) > 0 ? `Last ${esc(summary.days || 0)} days` : 'All time';
+  const compact = Number(days) > 7 || Number(days) === 0;
+  const summaryEl = document.getElementById('thesisSummary');
+  if (summaryEl) summaryEl.style.maxHeight = compact ? '180px' : '260px';
+
   document.getElementById('thesisSummary').innerHTML =
     `<div class="thesis-summary-grid">`+
-      `<div class="thesis-metric"><div class="k">Range</div><div class="v">Last ${esc(summary.days || 0)} days</div></div>`+
+      `<div class="thesis-metric"><div class="k">Range</div><div class="v">${rangeLabel}</div></div>`+
       `<div class="thesis-metric"><div class="k">Entries</div><div class="v">${esc(summary.entries || 0)}</div></div>`+
       `<div class="thesis-metric"><div class="k">Hours</div><div class="v">${esc(summary.hours || 0)}h</div></div>`+
       `<div class="thesis-metric"><div class="k">Total since start</div><div class="v">${esc(summary.totalProjectHours || 0)}h</div></div>`+
     `</div>`+
     `<div class="thesis-list-box"><b>Hours by task type</b><ul>${typeRows}</ul></div>`+
-    `<div class="thesis-list-box"><b>Outcomes</b><ul>${outcomes}</ul></div>`+
-    `<div class="thesis-list-box"><b>Blockers</b><ul>${blockers}</ul></div>`+
-    `<div class="thesis-list-box"><b>Next actions</b><ul>${nextActions}</ul></div>`;
+    (compact ? '' : `<div class="thesis-list-box"><b>Outcomes</b><ul>${outcomes}</ul></div>`+
+      `<div class="thesis-list-box"><b>Blockers</b><ul>${blockers}</ul></div>`+
+      `<div class="thesis-list-box"><b>Next actions</b><ul>${nextActions}</ul></div>`);
 
   const insightEl = document.getElementById('thesisInsight');
   if (insightEl) insightEl.innerHTML = `<b>Weekly status</b><div style="margin-top:4px;">${esc(insight.message || '')}</div>`;
 
   const wrap = document.getElementById('thesisScheduleWindow');
   const allLogs = logsData.items || [];
+  const rangeDays = Number(days);
+
+  let start;
+  if (rangeDays > 0) {
+    start = new Date(d);
+    start.setDate(start.getDate() - (rangeDays - 1));
+    start.setHours(0,0,0,0);
+  } else {
+    const earliest = allLogs.length ? new Date(Math.min(...allLogs.map(x => new Date(x.startedAt).getTime()))) : new Date(d);
+    start = new Date(earliest);
+    start.setHours(0,0,0,0);
+  }
+
   const logs = allLogs.filter(l => {
     const t = new Date(l.startedAt).getTime();
     return t >= start.getTime() && t <= d.getTime();
@@ -1524,19 +1540,20 @@ async function loadThesisSummary(days){
     return;
   }
 
-  const hourH = 24;
+  const hourH = (Number(days) > 7 || Number(days) === 0) ? 22 : 24;
   const startHour = 6;
   const endHour = 24;
   const totalH = (endHour - startHour) * hourH;
   wrap.style.setProperty('--thesis-hour-h', `${hourH}px`);
+  wrap.style.minHeight = (Number(days) > 7 || Number(days) === 0) ? '560px' : '460px';
 
-  // Rolling last N days view (default 7): include weekend columns only when they have entries.
+  // Rolling range view: include weekend columns only when they have entries.
   const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const rangeDays = Number(days) || 7;
+  const totalDaysInRange = Math.max(1, rangeDays > 0 ? rangeDays : Math.ceil((d.getTime() - start.getTime()) / 86400000) + 1);
   const startRange = new Date(start);
 
   const allDays = [];
-  for (let i=0; i<rangeDays; i++) {
+  for (let i=0; i<totalDaysInRange; i++) {
     const d = new Date(startRange);
     d.setDate(d.getDate() + i);
     allDays.push(d);
@@ -1598,13 +1615,14 @@ async function loadThesisSummary(days){
     cols += `<div class="thesis-day-track" style="height:${totalH}px;">${blocks}</div>`;
   }
 
+  const minCol = (Number(days) > 7 || Number(days) === 0) ? 72 : 0;
   wrap.innerHTML = `<div class="thesis-week-wrap">`+
-    `<div class="thesis-week-header" style="grid-template-columns:52px repeat(${colCount}, minmax(0,1fr));">`+
+    `<div class="thesis-week-header" style="grid-template-columns:52px repeat(${colCount}, minmax(${minCol}px,1fr));">`+
       `<div></div>${header}`+
     `</div>`+
     `<div class="thesis-week-body">`+
       `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
-      `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(0,1fr));">${cols}</div>`+
+      `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(${minCol}px,1fr));">${cols}</div>`+
     `</div>`+
   `</div>`;
 }
@@ -1624,8 +1642,16 @@ async function undoLastThesisAction(){
   hideLoading();
 }
 
-function exportThesisCsv(allTime=false){
-  const days = allTime ? 0 : Number(document.getElementById('thesisRangeDays')?.value || 0);
+function exportThesisCsvPrompt(){
+  const cur = Number(document.getElementById('thesisRangeDays')?.value || 7);
+  const pick = prompt('Export range? Type: 7, 30, all, or current', 'current');
+  if (pick === null) return;
+  const p = String(pick).trim().toLowerCase();
+  let days = cur;
+  if (p === 'all' || p === '0') days = 0;
+  else if (p === '7') days = 7;
+  else if (p === '30') days = 30;
+  else if (p === 'current') days = cur;
   window.open(`/api/thesis-export.csv?days=${days}`, '_blank');
 }
 
