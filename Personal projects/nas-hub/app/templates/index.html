@@ -270,7 +270,7 @@
     .thesis-list-box { margin-top:8px; border:1px solid #343434; background:#121212; border-radius:8px; padding:8px; }
     .thesis-list-box b { color:#e6e6e6; }
     .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#cfcfcf; }
-    #thesisSummary { max-height: 260px; overflow: auto; }
+    #thesisSummary { max-height: none; overflow: visible; }
 
     body[data-theme="light"] .thesis-metric { border-color:#d8d8d8; background:#ffffff; }
     body[data-theme="light"] .thesis-metric .k { color:#666; }
@@ -1503,8 +1503,6 @@ async function loadThesisSummary(days){
 
   const rangeLabel = Number(days) > 0 ? `Last ${esc(summary.days || 0)} days` : 'All time';
   const compact = Number(days) > 7 || Number(days) === 0;
-  const summaryEl = document.getElementById('thesisSummary');
-  if (summaryEl) summaryEl.style.maxHeight = compact ? '180px' : '260px';
 
   document.getElementById('thesisSummary').innerHTML =
     `<div class="thesis-summary-grid">`+
