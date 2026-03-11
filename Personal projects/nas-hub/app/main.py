@@ -315,6 +315,57 @@ def _slot_overlaps(slot_start: datetime, slot_end: datetime, busy_ranges: list[t
     return False
 
 
+def _find_overlaps(start_iso: str, end_iso: str, calendar_ids: list[str] | None = None):
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+
+    all_cals = _list_calendars_raw()
+    selected = []
+    for c in all_cals:
+        cid = c.get("id")
+        if cid == "sv.swedish#holiday@group.v.calendar.google.com":
+            continue
+        if calendar_ids and cid not in calendar_ids:
+            continue
+        selected.append((cid, c.get("summary", cid)))
+
+    start_dt = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
+    end_dt = datetime.fromisoformat(end_iso.replace("Z", "+00:00"))
+
+    overlaps = []
+    for cid, cname in selected:
+        evs = svc.events().list(
+            calendarId=cid,
+            singleEvents=True,
+            orderBy="startTime",
+            timeMin=start_iso,
+            timeMax=end_iso,
+            maxResults=50,
+        ).execute().get("items", [])
+
+        for e in evs:
+            s = e.get("start", {})
+            en = e.get("end", {})
+            if "dateTime" not in s or "dateTime" not in en:
+                continue
+            try:
+                es = datetime.fromisoformat(s["dateTime"].replace("Z", "+00:00"))
+                ee = datetime.fromisoformat(en["dateTime"].replace("Z", "+00:00"))
+                if start_dt < ee and end_dt > es:
+                    overlaps.append({
+                        "calendarId": cid,
+                        "calendar": cname,
+                        "id": e.get("id"),
+                        "summary": e.get("summary", "(no title)"),
+                        "start": s,
+                        "end": en,
+                    })
+            except Exception:
+                continue
+
+    return overlaps
+
+
 @app.post("/api/agent/suggest-slots")
 async def suggest_slots(request: Request):
     """
@@ -379,6 +430,25 @@ async def suggest_slots(request: Request):
 @app.post("/api/agent/book-slot")
 async def agent_book_slot(request: Request):
     body = await request.json()
+
+    check_conflicts = bool(body.get("checkConflicts", True))
+    conflict_scope = body.get("conflictScope", "all")  # "all" | "targetCalendar"
+    scope_calendar_ids = None
+    if conflict_scope == "targetCalendar":
+        scope_calendar_ids = [body["calendarId"]]
+
+    if check_conflicts:
+        overlaps = _find_overlaps(body["start"], body["end"], scope_calendar_ids)
+        if overlaps:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "SLOT_CONFLICT",
+                    "message": "New event overlaps existing event(s). Ask user what should move.",
+                    "overlaps": overlaps,
+                },
+            )
+
     created = _create_event(
         body["calendarId"],
         body["summary"],
