@@ -138,16 +138,21 @@ def _choose_target_calendar(body: dict, profile: dict) -> str:
 
 
 def get_google_creds() -> Credentials:
-    if not os.path.exists(TOKEN_FILE):
-        raise HTTPException(status_code=401, detail=f"Google token file missing: {TOKEN_FILE}")
-    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    if creds.expired and creds.refresh_token:
-        from google.auth.transport.requests import Request as GRequest
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            raise HTTPException(status_code=401, detail=f"Google token file missing: {TOKEN_FILE}")
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        if creds.expired and creds.refresh_token:
+            from google.auth.transport.requests import Request as GRequest
 
-        creds.refresh(GRequest())
-        with open(TOKEN_FILE, "w", encoding="utf-8") as f:
-            f.write(creds.to_json())
-    return creds
+            creds.refresh(GRequest())
+            with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+                f.write(creds.to_json())
+        return creds
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Google auth error: {e}")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -156,6 +161,40 @@ def home(request: Request):
     with Session(engine) as db:
         logs = db.scalars(select(ThesisLog).order_by(ThesisLog.started_at.desc()).limit(20)).all()
     return templates.TemplateResponse("index.html", {"request": request, "connected": connected, "logs": logs, "base_url": BASE_URL, "token_file": TOKEN_FILE})
+
+
+@app.get("/api/auth/health")
+def auth_health():
+    info = {
+        "tokenFile": TOKEN_FILE,
+        "tokenFileExists": os.path.exists(TOKEN_FILE),
+        "scopes": SCOPES,
+        "ok": False,
+    }
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            info["error"] = f"token_missing: {TOKEN_FILE}"
+            return info
+
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        info["hasRefreshToken"] = bool(creds.refresh_token)
+        info["expired"] = bool(creds.expired)
+        info["valid"] = bool(creds.valid)
+
+        if creds.expired and creds.refresh_token:
+            from google.auth.transport.requests import Request as GRequest
+            creds.refresh(GRequest())
+            with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+                f.write(creds.to_json())
+            info["refreshed"] = True
+
+        # probe API quickly
+        svc = build("calendar", "v3", credentials=creds)
+        svc.calendarList().list(maxResults=1).execute()
+        info["ok"] = True
+    except Exception as e:
+        info["error"] = str(e)
+    return info
 
 
 @app.get("/api/calendars")

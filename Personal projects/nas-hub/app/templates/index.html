@@ -624,7 +624,15 @@ function hyphenateLongWords(text, chunk=12){
 
 async function loadCalendars(){
   const r = await fetch('/api/calendars');
-  if (!r.ok) throw new Error(`Calendars API failed (${r.status})`);
+  if (!r.ok) {
+    let extra = '';
+    try {
+      const ah = await fetch('/api/auth/health');
+      const aj = await ah.json();
+      if (!aj.ok) extra = ` | Google auth issue: ${aj.error || 'token invalid'}`;
+    } catch {}
+    throw new Error(`Calendars API failed (${r.status})${extra}`);
+  }
   const j = await r.json();
   calendars = j.items || [];
 
