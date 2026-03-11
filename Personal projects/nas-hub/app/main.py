@@ -363,6 +363,34 @@ def thesis_logs(days: int = 7):
     return {"days": days, "items": items}
 
 
+@app.delete("/api/thesis-logs/{log_id}")
+def delete_thesis_log(log_id: int):
+    with Session(engine) as db:
+        row = db.get(ThesisLog, log_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Thesis log not found")
+        db.delete(row)
+        db.commit()
+    return {"ok": True, "id": log_id}
+
+
+@app.delete("/api/thesis-logs")
+def delete_thesis_logs_by_summary(summary: str):
+    summary_norm = (summary or "").strip().lower()
+    if not summary_norm:
+        raise HTTPException(status_code=400, detail="summary is required")
+
+    deleted = 0
+    with Session(engine) as db:
+        rows = db.scalars(select(ThesisLog).where(ThesisLog.summary.is_not(None))).all()
+        for r in rows:
+            if (r.summary or "").strip().lower() == summary_norm:
+                db.delete(r)
+                deleted += 1
+        db.commit()
+    return {"ok": True, "deleted": deleted, "summary": summary}
+
+
 @app.get("/api/thesis-summary")
 def thesis_summary(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
