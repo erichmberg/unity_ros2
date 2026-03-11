@@ -125,6 +125,20 @@
       font-size: 12px;
       line-height: 1.2;
     }
+    .resize-handle {
+      position: absolute;
+      left: 50%; transform: translateX(-50%);
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,.9);
+      border: 1px solid rgba(0,0,0,.35);
+      opacity: 0;
+      transition: opacity .12s ease;
+      cursor: ns-resize;
+      z-index: 3;
+    }
+    .resize-handle.top { top: -4px; }
+    .resize-handle.bottom { bottom: -4px; }
+    .event-seg:hover .resize-handle { opacity: 1; }
     .drag-create {
       position: absolute;
       left: 6px;
@@ -334,6 +348,7 @@ let selectedEvent = null;
 let modalEditMode = false;
 let dragState = null;
 let moveState = null;
+let resizeState = null;
 let pressState = null;
 let suppressNextOpen = false;
 let suppressNextOpenUntil = 0;
@@ -661,7 +676,7 @@ function renderWeekEvents(events){
       el.style.left = `calc(${leftPct}% + 4px)`;
       el.style.width = `calc(${widthPct}% - 8px)`;
       el.style.background = eventGradient(s.cal);
-      el.innerHTML = `<div class="event-title">${s.summary}</div>`;
+      el.innerHTML = `<div class="resize-handle top" data-edge="top"></div><div class="event-title">${s.summary}</div><div class="resize-handle bottom" data-edge="bottom"></div>`;
       // attach source event for modal / preview
       const src = byDay[day].find(x => (x.id||'') === s.id);
       if (src) {
@@ -683,10 +698,24 @@ function renderWeekEvents(events){
           if (!moveState) openEventModal(src);
         };
 
-        // Hold-to-drag moves existing event.
+        // Hold-to-drag moves existing event OR resize from edge handles.
         el.onmousedown = (ev) => {
           if (ev.button !== 0) return;
           ev.stopPropagation();
+
+          const handle = ev.target.closest('.resize-handle');
+          if (handle) {
+            const edge = handle.dataset.edge;
+            const startDt = src.start?.dateTime ? new Date(src.start.dateTime) : null;
+            const endDt = src.end?.dateTime ? new Date(src.end.dateTime) : null;
+            if (!startDt || !endDt) return;
+            const startMin = startDt.getHours()*60 + startDt.getMinutes();
+            const endMin = endDt.getHours()*60 + endDt.getMinutes();
+            resizeState = { event: src, day, track, edge, startMin, endMin };
+            showLoading('Resizing event…');
+            return;
+          }
+
           pressState = {
             kind: 'event',
             event: src,
@@ -886,6 +915,20 @@ function updateDragOverlay(){
 }
 
 window.addEventListener('mousemove', (ev) => {
+  if (resizeState) {
+    const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-track') || resizeState.track;
+    const dayIdx = Number(target.dataset.day);
+    const m = minuteFromPointer(target, ev.clientY);
+    resizeState.track = target;
+    resizeState.day = dayIdx;
+    if (resizeState.edge === 'top') {
+      resizeState.startMin = Math.min(m, resizeState.endMin - 15);
+    } else {
+      resizeState.endMin = Math.max(m, resizeState.startMin + 15);
+    }
+    return;
+  }
+
   if (pressState && !pressState.started) {
     const dx = ev.clientX - pressState.startClientX;
     const dy = ev.clientY - pressState.startClientY;
@@ -929,6 +972,34 @@ window.addEventListener('mousemove', (ev) => {
 });
 
 window.addEventListener('mouseup', async () => {
+  if (resizeState) {
+    const snap = resizeState;
+    resizeState = null;
+    try {
+      const payload = {
+        summary: snap.event.summary || '(no title)',
+        description: snap.event.description || '',
+        start: `${minutesToInput(dayDateFromIndex(snap.day), snap.startMin)}:00`,
+        end: `${minutesToInput(dayDateFromIndex(snap.day), snap.endMin)}:00`,
+        timeZone: 'Europe/Stockholm'
+      };
+      const r = await fetch(`/api/events/${encodeURIComponent(snap.event.calendarId)}/${encodeURIComponent(snap.event.id)}`, {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || 'Resize failed');
+      await loadWeek();
+      hideLoading();
+      suppressNextOpenUntil = Date.now() + 700;
+      return;
+    } catch (e) {
+      hideLoading();
+      alert(e.message || 'Resize failed');
+      await loadWeek();
+      return;
+    }
+  }
+
   if (pressState) {
     clearTimeout(pressState.timer);
     const started = pressState.started;
