@@ -277,9 +277,11 @@
     body[data-theme="light"] .thesis-list-box { border-color:#d8d8d8; background:#ffffff; }
     body[data-theme="light"] .thesis-list-box b,
     body[data-theme="light"] .thesis-list-box ul { color:#222; }
-    body[data-theme="light"] #thesisScheduleWindow { background:#fff5f5 !important; border-color:#d99 !important; }
+    body[data-theme="light"] #thesisScheduleWindow { background:#fff7f7 !important; border-color:#d9aaaa !important; }
     body[data-theme="light"] .thesis-hour-rail { border-right-color:#d3a0a0; color:#7a5050; }
-    body[data-theme="light"] .thesis-day-track { border-color:#d99; background: repeating-linear-gradient(to bottom, rgba(200,80,80,0.15) 0, rgba(200,80,80,0.15) 1px, transparent 1px, transparent var(--thesis-hour-h)); }
+    body[data-theme="light"] .thesis-day-track { border-color:#d9b0b0; background: repeating-linear-gradient(to bottom, rgba(200,80,80,0.10) 0, rgba(200,80,80,0.10) 1px, transparent 1px, transparent var(--thesis-hour-h)); }
+    body[data-theme="light"] .thesis-week-header-cell { background:#ffe9e9; border-color:#d7a4a4; color:#5e1f1f; }
+    body[data-theme="light"] .thesis-event-block { background: linear-gradient(180deg, #d74a4a 0%, #ba2f2f 70%, #982424 100%); border-color:#b23636; color:#fff; }
 
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
@@ -499,7 +501,8 @@
           <button type="button" onclick="shiftThesisWindow(-7)">← Prev week</button>
           <button type="button" onclick="shiftThesisWindow(7)">Next week →</button>
           <button type="button" onclick="undoLastThesisAction()">Undo last</button>
-          <button type="button" onclick="exportThesisCsv()">Export CSV</button>
+          <button type="button" onclick="exportThesisCsv(false)">Export CSV</button>
+          <button type="button" onclick="exportThesisCsv(true)">Export all CSV</button>
           <label for="thesisRangeDays" style="margin:0 0 0 8px; font-size:12px; opacity:.9;">Range</label>
           <select id="thesisRangeDays" onchange="loadThesisSummary(Number(this.value))" style="max-width:180px;">
             <option value="7">Last 7 days</option>
@@ -1621,8 +1624,8 @@ async function undoLastThesisAction(){
   hideLoading();
 }
 
-function exportThesisCsv(){
-  const days = Number(document.getElementById('thesisRangeDays')?.value || 0);
+function exportThesisCsv(allTime=false){
+  const days = allTime ? 0 : Number(document.getElementById('thesisRangeDays')?.value || 0);
   window.open(`/api/thesis-export.csv?days=${days}`, '_blank');
 }
 
