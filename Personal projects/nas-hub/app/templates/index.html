@@ -205,6 +205,31 @@
       color: #d9a3a3;
       font-size: 11px;
     }
+    .thesis-week-wrap { margin-top: 4px; }
+    .thesis-week-header {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .thesis-week-header-cell {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffb3b3;
+      border: 1px solid #5f1717;
+      border-radius: 6px;
+      padding: 4px;
+      background: #240909;
+    }
+    .thesis-week-body {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 8px;
+    }
+    .thesis-days-grid {
+      display: grid;
+      gap: 6px;
+    }
     .thesis-hour-mark {
       position: absolute;
       right: 6px;
@@ -1429,21 +1454,52 @@ async function loadThesisSummary(days){
   const totalH = (endHour - startHour) * hourH;
   wrap.style.setProperty('--thesis-hour-h', `${hourH}px`);
 
-  const byDay = new Map();
+  // Show one week view (Mon-Fri always), add weekend columns only if logs exist that weekend.
+  const latestLogDate = new Date(Math.max(...logs.map(l => new Date(l.startedAt).getTime())));
+  const weekStart = getMonday(latestLogDate);
+  const weekDays = [];
+  for (let i=0; i<5; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate()+i);
+    weekDays.push(d);
+  }
+  const sat = new Date(weekStart); sat.setDate(sat.getDate()+5);
+  const sun = new Date(weekStart); sun.setDate(sun.getDate()+6);
+  const hasSat = logs.some(l => {
+    const d = new Date(l.startedAt);
+    return d.toDateString() === sat.toDateString();
+  });
+  const hasSun = logs.some(l => {
+    const d = new Date(l.startedAt);
+    return d.toDateString() === sun.toDateString();
+  });
+  if (hasSat) weekDays.push(sat);
+  if (hasSun) weekDays.push(sun);
+
+  const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const grouped = new Map();
+  for (const d of weekDays) grouped.set(dayKey(d), []);
   for (const l of logs) {
     const d = new Date(l.startedAt);
-    const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    if (!byDay.has(key)) byDay.set(key, []);
-    byDay.get(key).push(l);
+    const k = dayKey(d);
+    if (grouped.has(k)) grouped.get(k).push(l);
   }
 
-  let html = '';
-  for (const [day, items] of byDay.entries()) {
-    let rail = '';
-    for (let h = startHour; h <= endHour; h += 2) {
-      const y = (h - startHour) * hourH;
-      rail += `<div class="thesis-hour-mark" style="top:${y}px;">${pad(h%24)}:00</div>`;
-    }
+  let rail = '';
+  for (let h = startHour; h <= endHour; h += 2) {
+    const y = (h - startHour) * hourH;
+    rail += `<div class="thesis-hour-mark" style="top:${y}px;">${pad(h%24)}:00</div>`;
+  }
+
+  const colCount = weekDays.length;
+  let header = '';
+  let cols = '';
+  for (const d of weekDays) {
+    const k = dayKey(d);
+    const items = grouped.get(k) || [];
+    const name = d.toLocaleDateString('sv-SE', { weekday:'short' });
+    const shortDate = d.toLocaleDateString('sv-SE', { month:'2-digit', day:'2-digit' });
+    header += `<div class="thesis-week-header-cell">${esc(name)} ${esc(shortDate)}</div>`;
 
     let blocks = '';
     for (const it of items) {
@@ -1458,15 +1514,16 @@ async function loadThesisSummary(days){
                 `<div style="font-size:11px; opacity:.9; margin-top:2px;">${esc(String(it.hours))}h · ${esc(it.taskType || 'uncategorized')}</div>`+
                 `</div>`;
     }
-
-    html += `<div class="thesis-timeline-day">`+
-            `<div class="thesis-day-label">${day}</div>`+
-            `<div class="thesis-track-wrap">`+
-            `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
-            `<div class="thesis-day-track" style="height:${totalH}px;">${blocks}</div>`+
-            `</div></div>`;
+    cols += `<div class="thesis-day-track" style="height:${totalH}px;">${blocks}</div>`;
   }
-  wrap.innerHTML = html;
+
+  wrap.innerHTML = `<div class="thesis-week-wrap">`+
+    `<div class="thesis-week-header" style="grid-template-columns:repeat(${colCount}, minmax(0,1fr));">${header}</div>`+
+    `<div class="thesis-week-body">`+
+      `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
+      `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(0,1fr));">${cols}</div>`+
+    `</div>`+
+  `</div>`;
 }
 
 function applyTheme(theme){
