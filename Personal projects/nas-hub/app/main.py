@@ -349,6 +349,20 @@ def _extract_meta(details: str) -> dict:
     return meta
 
 
+def _base_details(details: str) -> str:
+    txt = details or ""
+    if "[meta]" in txt:
+        return txt.split("[meta]", 1)[0].strip()
+    return txt.strip()
+
+
+def _compose_details(base: str, meta: dict) -> str:
+    lines = [f"{k}={v}" for k, v in meta.items() if str(v).strip()]
+    if not lines:
+        return (base or "").strip()
+    return ((base or "").strip() + "\n\n[meta]\n" + "\n".join(lines)).strip()
+
+
 @app.get("/api/thesis-logs")
 def thesis_logs(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
@@ -366,6 +380,10 @@ def thesis_logs(days: int = 7):
             "summary": l.summary,
             "taskType": meta.get("task_type", tags[0] if tags else "uncategorized"),
             "categoryTags": tags,
+            "details": _base_details(l.details or ""),
+            "outcome": meta.get("outcome", ""),
+            "blocker": meta.get("blocker", ""),
+            "nextAction": meta.get("next_action", ""),
         })
     return {"days": days, "items": items}
 
@@ -398,6 +416,33 @@ def delete_thesis_logs_by_summary(summary: str):
     return {"ok": True, "deleted": deleted, "summary": summary}
 
 
+@app.put("/api/thesis-logs/{log_id}")
+async def update_thesis_log(log_id: int, request: Request):
+    body = await request.json()
+    with Session(engine) as db:
+        row = db.get(ThesisLog, log_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Thesis log not found")
+
+        row.started_at = datetime.fromisoformat(body.get("startedAt", row.started_at.isoformat()))
+        row.hours = float(body.get("hours", row.hours))
+        row.summary = body.get("summary", row.summary)
+
+        meta = _extract_meta(row.details or "")
+        tags = [t.strip() for t in (body.get("categoryTags", []) or []) if str(t).strip()]
+        if body.get("taskType") is not None:
+            meta["task_type"] = body.get("taskType", "")
+        meta["category_tags"] = ",".join(tags)
+        meta["outcome"] = body.get("outcome", "")
+        meta["blocker"] = body.get("blocker", "")
+        meta["next_action"] = body.get("nextAction", "")
+
+        row.details = _compose_details(body.get("details", _base_details(row.details or "")), meta)
+        db.commit()
+
+    return {"ok": True, "id": log_id}
+
+
 @app.put("/api/thesis-logs/{log_id}/categories")
 async def update_thesis_log_categories(log_id: int, request: Request):
     body = await request.json()
@@ -412,9 +457,7 @@ async def update_thesis_log_categories(log_id: int, request: Request):
         meta = _extract_meta(details)
         meta["category_tags"] = ",".join(tags)
 
-        base = details.split("[meta]", 1)[0].strip() if "[meta]" in details else details.strip()
-        lines = [f"{k}={v}" for k, v in meta.items() if str(v).strip()]
-        row.details = (base + "\n\n[meta]\n" + "\n".join(lines)).strip()
+        row.details = _compose_details(_base_details(details), meta)
         db.commit()
 
     return {"ok": True, "id": log_id, "categoryTags": tags}

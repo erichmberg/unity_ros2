@@ -485,7 +485,9 @@
       <div class="card">
         <h2>Thesis summary</h2>
         <div class="btn-row" style="align-items:center; gap:8px;">
-          <label for="thesisRangeDays" style="margin:0; font-size:12px; opacity:.9;">Range</label>
+          <button type="button" onclick="shiftThesisWindow(-7)">← Prev week</button>
+          <button type="button" onclick="shiftThesisWindow(7)">Next week →</button>
+          <label for="thesisRangeDays" style="margin:0 0 0 8px; font-size:12px; opacity:.9;">Range</label>
           <select id="thesisRangeDays" onchange="loadThesisSummary(Number(this.value))" style="max-width:180px;">
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -493,6 +495,38 @@
         </div>
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
         <div id="thesisSummary" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="thesisLogModalBackdrop" class="modal-backdrop" onclick="closeThesisLogModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3 style="margin-top:0;">Edit thesis log</h3>
+      <input id="tlId" type="hidden" />
+      <label>Started at</label>
+      <input id="tlStartedAt" type="datetime-local" />
+      <label>Hours</label>
+      <input id="tlHours" type="number" step="0.25" />
+      <label>Summary</label>
+      <input id="tlSummary" type="text" />
+      <label>Task type</label>
+      <select id="tlTaskType">
+        <option value="coding">Coding</option>
+        <option value="reading">Reading</option>
+        <option value="experiment">Experiment</option>
+        <option value="writing">Writing</option>
+        <option value="meeting">Meeting</option>
+        <option value="planning">Planning</option>
+        <option value="uncategorized">Uncategorized</option>
+      </select>
+      <label>Extra categories (comma separated)</label>
+      <input id="tlCategoryTags" type="text" placeholder="coding,meeting" />
+      <label>Details</label>
+      <textarea id="tlDetails" rows="3"></textarea>
+      <div class="btn-row">
+        <button type="button" onclick="saveThesisLogEdit()">Save</button>
+        <button type="button" class="danger-text-btn" onclick="deleteThesisLogEdit()">Delete</button>
+        <button type="button" onclick="closeThesisLogModal()">Cancel</button>
       </div>
     </div>
   </div>
@@ -517,6 +551,8 @@ let resizeState = null;
 let pressState = null;
 let suppressNextOpen = false;
 let suppressNextOpenUntil = 0;
+let thesisLogsIndex = new Map();
+let thesisViewEndDate = new Date();
 const DRAG_MIN_MINUTES = 15;
 const PRESS_TO_DRAG_MS = 260;
 const MOVE_PIXELS_THRESHOLD_MOUSE = 12;
@@ -1026,6 +1062,7 @@ function closeModal(){
 function closeAnyModal(){
   closeModal();
   closeCreateModal();
+  closeThesisLogModal();
 }
 
 function showHoverTip(ev, item){
@@ -1407,9 +1444,15 @@ async function loadThesisSummary(days){
   const sel = document.getElementById('thesisRangeDays');
   if (sel) sel.value = String(days);
 
+  const d = new Date(thesisViewEndDate);
+  d.setHours(23,59,59,999);
+  const start = new Date(d);
+  start.setDate(start.getDate() - (Number(days)-1));
+  start.setHours(0,0,0,0);
+
   const [sr, lr] = await Promise.all([
     fetch(`/api/thesis-summary?days=${days}`),
-    fetch(`/api/thesis-logs?days=${days}`),
+    fetch(`/api/thesis-logs?days=3650`),
   ]);
   const summary = await sr.json();
   const logsData = await lr.json();
@@ -1445,7 +1488,14 @@ async function loadThesisSummary(days){
     `<div class="thesis-list-box"><b>Next actions</b><ul>${nextActions}</ul></div>`;
 
   const wrap = document.getElementById('thesisScheduleWindow');
-  const logs = logsData.items || [];
+  const allLogs = logsData.items || [];
+  const logs = allLogs.filter(l => {
+    const t = new Date(l.startedAt).getTime();
+    return t >= start.getTime() && t <= d.getTime();
+  });
+
+  thesisLogsIndex = new Map(logs.map(x => [String(x.id), x]));
+
   if (!logs.length) {
     wrap.innerHTML = '<div style="color:#d8a8a8;">No thesis logs in this range.</div>';
     return;
@@ -1459,12 +1509,8 @@ async function loadThesisSummary(days){
 
   // Rolling last N days view (default 7): include weekend columns only when they have entries.
   const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
   const rangeDays = Number(days) || 7;
-  const startRange = new Date(today);
-  startRange.setDate(startRange.getDate() - (rangeDays - 1));
+  const startRange = new Date(start);
 
   const allDays = [];
   for (let i=0; i<rangeDays; i++) {
@@ -1521,7 +1567,7 @@ async function loadThesisSummary(days){
       const top = ((sm - startHour*60) / 60) * hourH;
       const height = Math.max(16, ((em - sm) / 60) * hourH);
       const clampedTop = Math.max(0, Math.min(totalH - 16, top));
-      blocks += `<div class="thesis-event-block" style="top:${clampedTop}px; height:${height}px;" title="${esc(it.summary)}">`+
+      blocks += `<div class="thesis-event-block" data-log-id="${esc(String(it.id))}" onclick="openThesisLogModal('${esc(String(it.id))}')" style="top:${clampedTop}px; height:${height}px; cursor:pointer;" title="${esc(it.summary)}">`+
                 `<div style="font-weight:700; overflow-wrap:anywhere;">${esc(it.summary)}</div>`+
                 `<div style="font-size:11px; opacity:.9; margin-top:2px;">${esc(String(it.hours))}h · ${esc(it.taskType || 'uncategorized')}</div>`+
                 `</div>`;
@@ -1538,6 +1584,68 @@ async function loadThesisSummary(days){
       `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(0,1fr));">${cols}</div>`+
     `</div>`+
   `</div>`;
+}
+
+function shiftThesisWindow(deltaDays){
+  thesisViewEndDate.setDate(thesisViewEndDate.getDate() + deltaDays);
+  const days = Number(document.getElementById('thesisRangeDays')?.value || 7);
+  loadThesisSummary(days);
+}
+
+function toDateTimeLocal(dtRaw){
+  const d = new Date(dtRaw);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function openThesisLogModal(id){
+  const log = thesisLogsIndex.get(String(id));
+  if (!log) return;
+  document.getElementById('tlId').value = String(log.id);
+  document.getElementById('tlStartedAt').value = toDateTimeLocal(log.startedAt);
+  document.getElementById('tlHours').value = String(log.hours ?? '');
+  document.getElementById('tlSummary').value = log.summary || '';
+  document.getElementById('tlTaskType').value = log.taskType || 'uncategorized';
+  document.getElementById('tlCategoryTags').value = (log.categoryTags || []).join(',');
+  document.getElementById('tlDetails').value = log.details || '';
+  document.getElementById('thesisLogModalBackdrop').style.display = 'flex';
+}
+
+function closeThesisLogModal(){
+  const el = document.getElementById('thesisLogModalBackdrop');
+  if (el) el.style.display = 'none';
+}
+
+async function saveThesisLogEdit(){
+  const id = document.getElementById('tlId').value;
+  if (!id) return;
+  const payload = {
+    startedAt: document.getElementById('tlStartedAt').value,
+    hours: Number(document.getElementById('tlHours').value || 0),
+    summary: document.getElementById('tlSummary').value.trim(),
+    taskType: document.getElementById('tlTaskType').value,
+    categoryTags: document.getElementById('tlCategoryTags').value.split(',').map(x=>x.trim()).filter(Boolean),
+    details: document.getElementById('tlDetails').value,
+  };
+  showLoading('Saving thesis log…');
+  const r = await fetch(`/api/thesis-logs/${encodeURIComponent(id)}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  if (!r.ok) { hideLoading(); alert('Failed to save thesis log'); return; }
+  closeThesisLogModal();
+  await loadThesisSummary(Number(document.getElementById('thesisRangeDays')?.value || 7));
+  hideLoading();
+}
+
+async function deleteThesisLogEdit(){
+  const id = document.getElementById('tlId').value;
+  if (!id) return;
+  if (!confirm('Delete this thesis log?')) return;
+  showLoading('Deleting thesis log…');
+  const r = await fetch(`/api/thesis-logs/${encodeURIComponent(id)}`, { method:'DELETE' });
+  if (!r.ok) { hideLoading(); alert('Failed to delete thesis log'); return; }
+  closeThesisLogModal();
+  await loadThesisSummary(Number(document.getElementById('thesisRangeDays')?.value || 7));
+  hideLoading();
 }
 
 function applyTheme(theme){
