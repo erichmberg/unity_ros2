@@ -21,6 +21,7 @@ SESSION_SECRET = os.getenv("SESSION_SECRET", "change-me")
 CLIENT_SECRET_FILE = os.getenv("GOOGLE_CLIENT_SECRET_FILE", "/app/secrets/client.json")
 TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE", "/app/secrets/token.json")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////app/data/app.db")
+SCHEDULING_PROFILE_FILE = os.getenv("SCHEDULING_PROFILE_FILE", "/app/data/scheduling_profile.json")
 
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
@@ -69,6 +70,62 @@ def set_setting(key: str, value: str):
         else:
             db.add(AppSetting(key=key, value=value))
         db.commit()
+
+
+def load_scheduling_profile() -> dict:
+    profile = {
+        "defaultCalendar": "eric.hm.berg@gmail.com",
+        "routingRules": [],
+        "avoidWriteCalendars": [],
+        "timePreferences": {
+            "earliestStart": "09:00",
+            "latestEnd": "22:00",
+            "latestEndUniversity": "18:00",
+            "weekendAllowed": True,
+            "avoidUniversityOnWeekends": True,
+        },
+        "defaultDurationsMin": {"general": 60, "university": 120},
+        "conflictPolicy": {"mode": "suggest_then_ask", "autoMove": False},
+        "privacyRouting": {"fallback": "eric.hm.berg@gmail.com"},
+    }
+    try:
+        if os.path.exists(SCHEDULING_PROFILE_FILE):
+            with open(SCHEDULING_PROFILE_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+            if isinstance(loaded, dict):
+                profile.update({k: v for k, v in loaded.items() if v is not None})
+                if isinstance(loaded.get("timePreferences"), dict):
+                    profile["timePreferences"].update(loaded["timePreferences"])
+                if isinstance(loaded.get("defaultDurationsMin"), dict):
+                    profile["defaultDurationsMin"].update(loaded["defaultDurationsMin"])
+                if isinstance(loaded.get("conflictPolicy"), dict):
+                    profile["conflictPolicy"].update(loaded["conflictPolicy"])
+                if isinstance(loaded.get("privacyRouting"), dict):
+                    profile["privacyRouting"].update(loaded["privacyRouting"])
+    except Exception:
+        pass
+    return profile
+
+
+def _is_university_related(body: dict) -> bool:
+    if body.get("universityRelated") is True:
+        return True
+    txt = f"{body.get('summary', '')} {body.get('description', '')} {body.get('context', '')}".lower()
+    markers = ["uni", "university", "chalmers", "lecture", "thesis", "kandidatarbete", "cobot"]
+    return any(m in txt for m in markers)
+
+
+def _choose_target_calendar(body: dict, profile: dict) -> str:
+    provided = body.get("calendarId")
+    if provided:
+        return provided
+
+    if _is_university_related(body):
+        for rule in profile.get("routingRules", []):
+            if rule.get("when") == "university_related" and rule.get("calendarId"):
+                return rule["calendarId"]
+
+    return profile.get("defaultCalendar", "eric.hm.berg@gmail.com")
 
 
 def get_google_creds() -> Credentials:
@@ -384,12 +441,24 @@ async def suggest_slots(request: Request):
     }
     """
     body = await request.json()
-    duration_min = int(body.get("durationMin", 60))
+    profile = load_scheduling_profile()
+    uni_related = _is_university_related(body)
+
+    default_duration = profile.get("defaultDurationsMin", {}).get("university" if uni_related else "general", 60)
+    duration_min = int(body.get("durationMin", default_duration))
     start_date = date.fromisoformat(body.get("startDate"))
     end_date = date.fromisoformat(body.get("endDate"))
-    day_start = int(body.get("dayStartHour", 8))
-    day_end = int(body.get("dayEndHour", 22))
-    avoid_weekends = bool(body.get("avoidWeekends", False))
+
+    pref = profile.get("timePreferences", {})
+    default_day_start = int(str(pref.get("earliestStart", "09:00")).split(":")[0])
+    default_day_end = int(str(pref.get("latestEndUniversity" if uni_related else "latestEnd", "22:00")).split(":")[0])
+
+    day_start = int(body.get("dayStartHour", default_day_start))
+    day_end = int(body.get("dayEndHour", default_day_end))
+
+    default_avoid_weekends = (not bool(pref.get("weekendAllowed", True))) or (uni_related and bool(pref.get("avoidUniversityOnWeekends", True)))
+    avoid_weekends = bool(body.get("avoidWeekends", default_avoid_weekends))
+
     max_results = int(body.get("maxResults", 5))
     tz_name = body.get("timeZone", "Europe/Stockholm")
     tz = ZoneInfo(tz_name)
@@ -430,12 +499,31 @@ async def suggest_slots(request: Request):
 @app.post("/api/agent/book-slot")
 async def agent_book_slot(request: Request):
     body = await request.json()
+    profile = load_scheduling_profile()
+
+    target_calendar = _choose_target_calendar(body, profile)
+    avoid_set = {x.get("calendarId") for x in profile.get("avoidWriteCalendars", []) if x.get("calendarId")}
+    if target_calendar in avoid_set:
+        source = (body.get("sourceCalendarId") or "").lower()
+        privacy = profile.get("privacyRouting", {})
+        if source and "cobot" in source and privacy.get("cobotSharedSource"):
+            target_calendar = privacy["cobotSharedSource"]
+        elif source and ("cdk" in source or "chalmersdykarklubb" in source) and privacy.get("cdkSharedSource"):
+            target_calendar = privacy["cdkSharedSource"]
+        else:
+            target_calendar = privacy.get("fallback", profile.get("defaultCalendar", "eric.hm.berg@gmail.com"))
+
+    if body.get("start") and not body.get("end"):
+        uni_related = _is_university_related(body)
+        duration_min = int(body.get("durationMin", profile.get("defaultDurationsMin", {}).get("university" if uni_related else "general", 60)))
+        start_dt = datetime.fromisoformat(body["start"].replace("Z", "+00:00"))
+        body["end"] = (start_dt + timedelta(minutes=duration_min)).isoformat()
 
     check_conflicts = bool(body.get("checkConflicts", True))
     conflict_scope = body.get("conflictScope", "all")  # "all" | "targetCalendar"
     scope_calendar_ids = None
     if conflict_scope == "targetCalendar":
-        scope_calendar_ids = [body["calendarId"]]
+        scope_calendar_ids = [target_calendar]
 
     if check_conflicts:
         overlaps = _find_overlaps(body["start"], body["end"], scope_calendar_ids)
@@ -446,11 +534,12 @@ async def agent_book_slot(request: Request):
                     "code": "SLOT_CONFLICT",
                     "message": "New event overlaps existing event(s). Ask user what should move.",
                     "overlaps": overlaps,
+                    "proposedCalendarId": target_calendar,
                 },
             )
 
     created = _create_event(
-        body["calendarId"],
+        target_calendar,
         body["summary"],
         body.get("description", ""),
         body["start"],
@@ -458,7 +547,7 @@ async def agent_book_slot(request: Request):
         body.get("timeZone", "Europe/Stockholm"),
         body.get("recurrenceRule"),
     )
-    return {"ok": True, "id": created.get("id"), "htmlLink": created.get("htmlLink")}
+    return {"ok": True, "id": created.get("id"), "htmlLink": created.get("htmlLink"), "calendarId": target_calendar}
 
 
 @app.post("/api/agent/move-event")
