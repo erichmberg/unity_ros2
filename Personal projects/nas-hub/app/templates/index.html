@@ -351,8 +351,31 @@
     </div>
 
     <div class="tabs">
+      <button id="tabBtnDashboard" class="tab-btn" type="button" onclick="switchTab('dashboard')">Dashboard</button>
       <button id="tabBtnCalendar" class="tab-btn active" type="button" onclick="switchTab('calendar')">Calendar</button>
       <button id="tabBtnThesis" class="tab-btn" type="button" onclick="switchTab('thesis')">Candidate thesis</button>
+    </div>
+
+    <div id="tabDashboard" class="hidden">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Today focus</h2>
+          <div id="dashTodayEvents" class="small">Loading…</div>
+        </div>
+        <div class="card">
+          <h2>Thesis progress</h2>
+          <div id="dashThesisProgress" class="small">Loading…</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h2>Quick actions</h2>
+        <div class="btn-row">
+          <button type="button" onclick="switchTab('calendar')">Open calendar</button>
+          <button type="button" onclick="switchTab('thesis')">Open thesis logs</button>
+          <button type="button" onclick="openCreateModal()">+ New calendar event</button>
+          <button type="button" onclick="openThesisCreateModal()">+ New thesis log</button>
+        </div>
+      </div>
     </div>
 
     <div id="tabCalendar">
@@ -582,6 +605,7 @@ let suppressNextOpen = false;
 let suppressNextOpenUntil = 0;
 let thesisLogsIndex = new Map();
 let thesisViewEndDate = new Date();
+let dashboardLoading = false;
 const DRAG_MIN_MINUTES = 15;
 const PRESS_TO_DRAG_MS = 260;
 const MOVE_PIXELS_THRESHOLD_MOUSE = 12;
@@ -1232,18 +1256,29 @@ function startPressDrag(){
 let thesisAutoLoaded = false;
 
 function switchTab(tab){
+  const dash = document.getElementById('tabDashboard');
   const cal = document.getElementById('tabCalendar');
   const th = document.getElementById('tabThesis');
+  const bDash = document.getElementById('tabBtnDashboard');
   const bCal = document.getElementById('tabBtnCalendar');
   const bTh = document.getElementById('tabBtnThesis');
-  const showCal = tab === 'calendar';
-  cal.classList.toggle('hidden', !showCal);
-  th.classList.toggle('hidden', showCal);
-  bCal.classList.toggle('active', showCal);
-  bTh.classList.toggle('active', !showCal);
-  localStorage.setItem('nasHubActiveTab', showCal ? 'calendar' : 'thesis');
 
-  if (!showCal && !thesisAutoLoaded) {
+  const showDash = tab === 'dashboard';
+  const showCal = tab === 'calendar';
+  const showTh = tab === 'thesis';
+
+  dash.classList.toggle('hidden', !showDash);
+  cal.classList.toggle('hidden', !showCal);
+  th.classList.toggle('hidden', !showTh);
+
+  bDash.classList.toggle('active', showDash);
+  bCal.classList.toggle('active', showCal);
+  bTh.classList.toggle('active', showTh);
+
+  localStorage.setItem('nasHubActiveTab', showDash ? 'dashboard' : (showCal ? 'calendar' : 'thesis'));
+
+  if (showDash) loadDashboard();
+  if (showTh && !thesisAutoLoaded) {
     thesisAutoLoaded = true;
     loadThesisSummary(7);
   }
@@ -1257,6 +1292,49 @@ function updateDragOverlay(){
   const height = Math.max(8, ((b - a) / 60) * HOUR_HEIGHT);
   dragState.overlay.style.top = `${top}px`;
   dragState.overlay.style.height = `${height}px`;
+}
+
+async function loadDashboard(){
+  if (dashboardLoading) return;
+  dashboardLoading = true;
+  try {
+    const now = new Date();
+    const s = new Date(now); s.setHours(0,0,0,0);
+    const e = new Date(now); e.setHours(23,59,59,999);
+    const [evR, sumR, inR] = await Promise.all([
+      fetch(`/api/events?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`),
+      fetch('/api/thesis-summary?days=7'),
+      fetch(`/api/thesis-insights?target_weekly_hours=${encodeURIComponent(getWeeklyTarget())}`),
+    ]);
+    const evJ = await evR.json();
+    const sumJ = await sumR.json();
+    const inJ = await inR.json();
+
+    const todayEl = document.getElementById('dashTodayEvents');
+    const events = (evJ.items || []).sort((a,b)=> new Date(a.start?.dateTime||0)-new Date(b.start?.dateTime||0));
+    if (!events.length) {
+      todayEl.innerHTML = '<div>No events today 🎉</div>';
+    } else {
+      todayEl.innerHTML = events.slice(0,8).map(ev => {
+        const t = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : 'All-day';
+        return `<div style="margin-bottom:6px;"><b>${t}</b> — ${ev.summary || '(no title)'} <span style="opacity:.75;">(${ev.calendar || ''})</span></div>`;
+      }).join('');
+    }
+
+    const progEl = document.getElementById('dashThesisProgress');
+    progEl.innerHTML = `
+      <div><b>Last 7 days:</b> ${sumJ.hours || 0}h (${sumJ.entries || 0} logs)</div>
+      <div><b>Total since start:</b> ${sumJ.totalProjectHours || 0}h</div>
+      <div style="margin-top:8px;">${inJ.message || ''}</div>
+    `;
+  } catch (err) {
+    const todayEl = document.getElementById('dashTodayEvents');
+    const progEl = document.getElementById('dashThesisProgress');
+    if (todayEl) todayEl.textContent = 'Failed to load dashboard.';
+    if (progEl) progEl.textContent = String(err?.message || err);
+  } finally {
+    dashboardLoading = false;
+  }
 }
 
 window.addEventListener('mousemove', (ev) => {
@@ -1852,8 +1930,8 @@ document.addEventListener('keydown', (ev) => {
 initTheme();
 const targetField = document.getElementById('thesisWeeklyTarget');
 if (targetField) targetField.value = String(getWeeklyTarget());
-const initialTab = localStorage.getItem('nasHubActiveTab') || 'calendar';
-switchTab(initialTab === 'thesis' ? 'thesis' : 'calendar');
+const initialTab = localStorage.getItem('nasHubActiveTab') || 'dashboard';
+switchTab(initialTab === 'thesis' ? 'thesis' : (initialTab === 'calendar' ? 'calendar' : 'dashboard'));
 loadWeek();
 setInterval(updateNowIndicator, 30 * 1000);
 </script>
