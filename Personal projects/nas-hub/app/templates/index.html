@@ -457,9 +457,12 @@
       </div>
       <div class="card">
         <h2>Thesis summary</h2>
-        <div class="btn-row">
-          <button onclick="loadThesisSummary(7)">Last 7 days</button>
-          <button onclick="loadThesisSummary(30)">Last 30 days</button>
+        <div class="btn-row" style="align-items:center; gap:8px;">
+          <label for="thesisRangeDays" style="margin:0; font-size:12px; opacity:.9;">Range</label>
+          <select id="thesisRangeDays" onchange="loadThesisSummary(Number(this.value))" style="max-width:180px;">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
         </div>
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
         <div id="thesisSummary" style="margin-top:10px;"></div>
@@ -1374,6 +1377,9 @@ function updateNowIndicator(){
 }
 
 async function loadThesisSummary(days){
+  const sel = document.getElementById('thesisRangeDays');
+  if (sel) sel.value = String(days);
+
   const [sr, lr] = await Promise.all([
     fetch(`/api/thesis-summary?days=${days}`),
     fetch(`/api/thesis-logs?days=${days}`),
@@ -1401,7 +1407,7 @@ async function loadThesisSummary(days){
 
   document.getElementById('thesisSummary').innerHTML =
     `<div class="thesis-summary-grid">`+
-      `<div class="thesis-metric"><div class="k">Days</div><div class="v">${esc(summary.days || 0)}</div></div>`+
+      `<div class="thesis-metric"><div class="k">Range</div><div class="v">Last ${esc(summary.days || 0)} days</div></div>`+
       `<div class="thesis-metric"><div class="k">Entries</div><div class="v">${esc(summary.entries || 0)}</div></div>`+
       `<div class="thesis-metric"><div class="k">Hours</div><div class="v">${esc(summary.hours || 0)}h</div></div>`+
     `</div>`+
