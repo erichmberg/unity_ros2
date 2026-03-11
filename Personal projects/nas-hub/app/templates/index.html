@@ -712,7 +712,7 @@ function renderWeekEvents(events){
             const startMin = startDt.getHours()*60 + startDt.getMinutes();
             const endMin = endDt.getHours()*60 + endDt.getMinutes();
             resizeState = { event: src, day, track, edge, startMin, endMin };
-            showLoading('Resizing event…');
+            setStatus('Resizing… release to save');
             return;
           }
 
@@ -983,6 +983,7 @@ window.addEventListener('mouseup', async () => {
         end: `${minutesToInput(dayDateFromIndex(snap.day), snap.endMin)}:00`,
         timeZone: 'Europe/Stockholm'
       };
+      showLoading('Saving resized event…');
       const r = await fetch(`/api/events/${encodeURIComponent(snap.event.calendarId)}/${encodeURIComponent(snap.event.id)}`, {
         method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
       });
