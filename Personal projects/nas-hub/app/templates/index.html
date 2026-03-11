@@ -189,7 +189,7 @@
       pointer-events: none;
       z-index: 25;
     }
-    .event-title { font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+    .event-title { font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow-wrap: anywhere; word-break: break-word; }
     .event-meta { font-size: 11px; color: rgba(255,255,255,.92); margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
 
     .pill { display:inline-block; margin:3px 6px 0 0; padding:3px 8px; border-radius:999px; background:#141519; border:1px solid #34363e; font-size:12px; }
@@ -449,6 +449,15 @@ function eventGradient(cal){
   return `linear-gradient(180deg, hsla(${hue},28%,9%,0.96) 0%, hsla(${hue},24%,16%,0.82) 55%, hsla(${hue},36%,28%,0.35) 100%)`;
 }
 
+function hyphenateLongWords(text, chunk=12){
+  if (!text) return '';
+  return text.split(/(\s+)/).map(part => {
+    if (!part.trim() || part.length <= chunk) return part;
+    const pieces = part.match(new RegExp(`.{1,${chunk}}`, 'g')) || [part];
+    return pieces.join('-\u200b');
+  }).join('');
+}
+
 async function loadCalendars(){
   const r = await fetch('/api/calendars');
   if (!r.ok) throw new Error(`Calendars API failed (${r.status})`);
@@ -497,12 +506,20 @@ function dayDateFromIndex(dayIdx){
 async function moveEventTo(ev, dayIdx, startMin){
   const sInput = minutesToInput(dayDateFromIndex(dayIdx), startMin);
   const eInput = minutesToInput(dayDateFromIndex(dayIdx), startMin + (ev._durationMin || 60));
+
+  let applySeries = false;
+  if (ev?.recurringEventId) {
+    applySeries = confirm('Apply move to the whole recurring series?\n\nOK = whole series\nCancel = only this event');
+  }
+
   const payload = {
     summary: ev.summary || '(no title)',
     description: ev.description || '',
     start: `${sInput}:00`,
     end: `${eInput}:00`,
-    timeZone: 'Europe/Stockholm'
+    timeZone: 'Europe/Stockholm',
+    applySeries,
+    seriesEventId: ev?.recurringEventId || null,
   };
   const r = await fetch(`/api/events/${encodeURIComponent(ev.calendarId)}/${encodeURIComponent(ev.id)}`, {
     method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
@@ -766,7 +783,9 @@ function renderWeekEvents(events){
       el.style.left = `calc(${leftPct}% + 4px)`;
       el.style.width = `calc(${widthPct}% - 8px)`;
       el.style.background = eventGradient(s.cal);
-      el.innerHTML = `<div class="resize-handle top" data-edge="top"></div><div class="event-title">${s.summary}</div><div class="resize-handle bottom" data-edge="bottom"></div>`;
+      el.innerHTML = `<div class="resize-handle top" data-edge="top"></div><div class="event-title"></div><div class="resize-handle bottom" data-edge="bottom"></div>`;
+      const titleEl = el.querySelector('.event-title');
+      if (titleEl) titleEl.textContent = hyphenateLongWords(s.summary);
       // attach source event for modal / preview
       const src = byDay[day].find(x => (x.id||'') === s.id);
       if (src) {
