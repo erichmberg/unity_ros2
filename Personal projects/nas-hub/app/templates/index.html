@@ -354,6 +354,7 @@
       <button id="tabBtnDashboard" class="tab-btn" type="button" onclick="switchTab('dashboard')">Dashboard</button>
       <button id="tabBtnCalendar" class="tab-btn active" type="button" onclick="switchTab('calendar')">Calendar</button>
       <button id="tabBtnThesis" class="tab-btn" type="button" onclick="switchTab('thesis')">Candidate thesis</button>
+      <button id="tabBtnDeadlines" class="tab-btn" type="button" onclick="switchTab('deadlines')">Deadlines</button>
     </div>
 
     <div id="tabDashboard" class="hidden">
@@ -507,6 +508,41 @@
         <div id="activityFeed" class="thesis-list-box" style="margin-top:10px;"></div>
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
         <div id="thesisSummary" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <div id="tabDeadlines" class="hidden">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Create deadline</h2>
+          <label>Assignment</label>
+          <input id="dTitle" type="text" placeholder="Assignment name" />
+          <label>Course/Project</label>
+          <input id="dCourse" type="text" placeholder="Course or project" />
+          <label>Done by (24h)</label>
+          <input id="dDoneBy" type="datetime-local" />
+          <label>Hard deadline (24h)</label>
+          <input id="dDeadline" type="datetime-local" />
+          <label>Start reminders (days before)</label>
+          <input id="dStartDays" type="number" min="1" value="14" />
+          <label>Reminder every (days)</label>
+          <input id="dEveryDays" type="number" min="1" value="2" />
+          <label>Priority</label>
+          <select id="dPriority">
+            <option value="low">Low</option>
+            <option value="normal" selected>Normal</option>
+            <option value="high">High</option>
+          </select>
+          <label>Notes</label>
+          <textarea id="dNotes" rows="3"></textarea>
+          <div class="btn-row">
+            <button type="button" onclick="createDeadline()">Create deadline</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Deadline list (chronological)</h2>
+          <div id="deadlineRows" class="small">Loading…</div>
+        </div>
       </div>
     </div>
 
@@ -1260,29 +1296,35 @@ function switchTab(tab){
   const dash = document.getElementById('tabDashboard');
   const cal = document.getElementById('tabCalendar');
   const th = document.getElementById('tabThesis');
+  const dl = document.getElementById('tabDeadlines');
   const bDash = document.getElementById('tabBtnDashboard');
   const bCal = document.getElementById('tabBtnCalendar');
   const bTh = document.getElementById('tabBtnThesis');
+  const bDl = document.getElementById('tabBtnDeadlines');
 
   const showDash = tab === 'dashboard';
   const showCal = tab === 'calendar';
   const showTh = tab === 'thesis';
+  const showDl = tab === 'deadlines';
 
   dash.classList.toggle('hidden', !showDash);
   cal.classList.toggle('hidden', !showCal);
   th.classList.toggle('hidden', !showTh);
+  dl.classList.toggle('hidden', !showDl);
 
   bDash.classList.toggle('active', showDash);
   bCal.classList.toggle('active', showCal);
   bTh.classList.toggle('active', showTh);
+  bDl.classList.toggle('active', showDl);
 
-  localStorage.setItem('nasHubActiveTab', showDash ? 'dashboard' : (showCal ? 'calendar' : 'thesis'));
+  localStorage.setItem('nasHubActiveTab', showDash ? 'dashboard' : (showCal ? 'calendar' : (showTh ? 'thesis' : 'deadlines')));
 
   if (showDash) loadDashboard();
   if (showTh && !thesisAutoLoaded) {
     thesisAutoLoaded = true;
     loadThesisSummary(7);
   }
+  if (showDl) loadDeadlines();
 }
 
 function updateDragOverlay(){
@@ -1315,6 +1357,63 @@ function updateDashboardCountdown(){
   }
   const diff = dashboardNextEventTs - Date.now();
   el.textContent = diff > 0 ? `Next event in ${formatCountdown(diff)}` : 'Next event now';
+}
+
+async function loadDeadlines(){
+  const r = await fetch('/api/deadlines');
+  const j = await r.json();
+  const items = (j.items || []);
+  const el = document.getElementById('deadlineRows');
+  if (!items.length) {
+    el.innerHTML = 'No deadlines yet.';
+    return;
+  }
+  el.innerHTML = items.map(d => {
+    const doneBy = new Date(d.doneByAt).toLocaleString('sv-SE', {hour12:false});
+    const deadlineAt = new Date(d.deadlineAt).toLocaleString('sv-SE', {hour12:false});
+    return `<div style="border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px;">`+
+      `<div><b>${d.title}</b> <span style="opacity:.75;">(${d.course || '-'})</span></div>`+
+      `<div>Done by: <b>${doneBy}</b></div>`+
+      `<div>Deadline: <b>${deadlineAt}</b></div>`+
+      `<div>Reminders: start ${d.remindStartDays}d before, every ${d.remindEveryDays}d • Priority: ${d.priority} • Status: ${d.status}</div>`+
+      `<div class="btn-row" style="margin-top:6px;"><button type="button" onclick="markDeadlineDone(${d.id})">Mark done</button><button type="button" class="danger-text-btn" onclick="deleteDeadline(${d.id})">Delete</button></div>`+
+    `</div>`;
+  }).join('');
+}
+
+async function createDeadline(){
+  const payload = {
+    title: document.getElementById('dTitle').value.trim(),
+    course: document.getElementById('dCourse').value.trim(),
+    doneByAt: document.getElementById('dDoneBy').value,
+    deadlineAt: document.getElementById('dDeadline').value,
+    remindStartDays: Number(document.getElementById('dStartDays').value || 14),
+    remindEveryDays: Number(document.getElementById('dEveryDays').value || 2),
+    priority: document.getElementById('dPriority').value,
+    notes: document.getElementById('dNotes').value.trim(),
+    calendarId: 'eric.hm.berg@gmail.com',
+    timeZone: 'Europe/Stockholm',
+  };
+  if (!payload.title || !payload.doneByAt || !payload.deadlineAt) { alert('Fill title, done-by, and deadline.'); return; }
+  showLoading('Creating deadline…');
+  const r = await fetch('/api/deadlines', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) { hideLoading(); alert(j.detail || 'Create deadline failed'); return; }
+  hideLoading();
+  await loadDeadlines();
+}
+
+async function markDeadlineDone(id){
+  const r = await fetch(`/api/deadlines/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'done'})});
+  if (!r.ok) { alert('Failed to mark done'); return; }
+  await loadDeadlines();
+}
+
+async function deleteDeadline(id){
+  if (!confirm('Delete this deadline?')) return;
+  const r = await fetch(`/api/deadlines/${id}`, {method:'DELETE'});
+  if (!r.ok) { alert('Failed to delete'); return; }
+  await loadDeadlines();
 }
 
 async function loadDashboard(){

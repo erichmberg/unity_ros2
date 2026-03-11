@@ -57,6 +57,24 @@ class ThesisLogHistory(Base):
     payload: Mapped[str] = mapped_column(Text)
 
 
+class Deadline(Base):
+    __tablename__ = "deadlines"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(255))
+    course: Mapped[str] = mapped_column(String(255), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    deadline_at: Mapped[datetime] = mapped_column(DateTime)
+    done_by_at: Mapped[datetime] = mapped_column(DateTime)
+    remind_start_days: Mapped[int] = mapped_column(default=14)
+    remind_every_days: Mapped[int] = mapped_column(default=2)
+    priority: Mapped[str] = mapped_column(String(32), default="normal")
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    calendar_id: Mapped[str] = mapped_column(String(255), default="")
+    calendar_deadline_event_id: Mapped[str] = mapped_column(String(255), default="")
+    calendar_doneby_event_id: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 engine = create_engine(DATABASE_URL, future=True)
 Base.metadata.create_all(engine)
 
@@ -339,6 +357,120 @@ def delete_event(calendar_id: str, event_id: str, applySeries: bool = False, ser
     svc.events().delete(calendarId=calendar_id, eventId=target_event_id).execute()
     _record_activity("calendar.delete", {"calendarId": calendar_id, "eventId": target_event_id})
     return JSONResponse({"ok": True})
+
+
+@app.get("/api/deadlines")
+def list_deadlines(status: str | None = None):
+    with Session(engine) as db:
+        q = select(Deadline)
+        if status:
+            q = q.where(Deadline.status == status)
+        rows = db.scalars(q.order_by(Deadline.done_by_at.asc())).all()
+    return {
+        "items": [
+            {
+                "id": d.id,
+                "title": d.title,
+                "course": d.course,
+                "notes": d.notes,
+                "deadlineAt": d.deadline_at.isoformat(),
+                "doneByAt": d.done_by_at.isoformat(),
+                "remindStartDays": d.remind_start_days,
+                "remindEveryDays": d.remind_every_days,
+                "priority": d.priority,
+                "status": d.status,
+                "calendarId": d.calendar_id,
+            }
+            for d in rows
+        ]
+    }
+
+
+@app.post("/api/deadlines")
+async def create_deadline(request: Request):
+    body = await request.json()
+    title = (body.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+
+    deadline_at = datetime.fromisoformat(body["deadlineAt"])
+    done_by_at = datetime.fromisoformat(body["doneByAt"])
+    cal_id = body.get("calendarId") or "eric.hm.berg@gmail.com"
+
+    deadline_ev = _create_event(
+        cal_id,
+        f"Deadline: {title}",
+        body.get("notes", ""),
+        deadline_at.isoformat(),
+        (deadline_at + timedelta(hours=1)).isoformat(),
+        body.get("timeZone", "Europe/Stockholm"),
+    )
+    doneby_ev = _create_event(
+        cal_id,
+        f"Done by: {title}",
+        f"Target completion for: {title}\n\n{body.get('notes','')}",
+        done_by_at.isoformat(),
+        (done_by_at + timedelta(hours=1)).isoformat(),
+        body.get("timeZone", "Europe/Stockholm"),
+    )
+
+    with Session(engine) as db:
+        d = Deadline(
+            title=title,
+            course=body.get("course", ""),
+            notes=body.get("notes", ""),
+            deadline_at=deadline_at,
+            done_by_at=done_by_at,
+            remind_start_days=int(body.get("remindStartDays", 14)),
+            remind_every_days=int(body.get("remindEveryDays", 2)),
+            priority=body.get("priority", "normal"),
+            status=body.get("status", "active"),
+            calendar_id=cal_id,
+            calendar_deadline_event_id=deadline_ev.get("id", ""),
+            calendar_doneby_event_id=doneby_ev.get("id", ""),
+            created_at=datetime.utcnow(),
+        )
+        db.add(d)
+        db.commit()
+        db.refresh(d)
+
+    return {"ok": True, "id": d.id}
+
+
+@app.put("/api/deadlines/{deadline_id}")
+async def update_deadline(deadline_id: int, request: Request):
+    body = await request.json()
+    with Session(engine) as db:
+        d = db.get(Deadline, deadline_id)
+        if not d:
+            raise HTTPException(status_code=404, detail="deadline not found")
+        if body.get("status"):
+            d.status = body.get("status")
+        db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/deadlines/{deadline_id}")
+def delete_deadline(deadline_id: int):
+    with Session(engine) as db:
+        d = db.get(Deadline, deadline_id)
+        if not d:
+            raise HTTPException(status_code=404, detail="deadline not found")
+
+        # best effort remove calendar events
+        try:
+            creds = get_google_creds()
+            svc = build("calendar", "v3", credentials=creds)
+            if d.calendar_deadline_event_id:
+                svc.events().delete(calendarId=d.calendar_id, eventId=d.calendar_deadline_event_id).execute()
+            if d.calendar_doneby_event_id:
+                svc.events().delete(calendarId=d.calendar_id, eventId=d.calendar_doneby_event_id).execute()
+        except Exception:
+            pass
+
+        db.delete(d)
+        db.commit()
+    return {"ok": True}
 
 
 @app.post("/api/thesis-log")
