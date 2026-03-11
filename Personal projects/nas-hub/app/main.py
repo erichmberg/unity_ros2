@@ -1,7 +1,7 @@
 import json
 import os
 import urllib.parse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -249,3 +249,162 @@ def thesis_summary(days: int = 7):
         logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff)).all()
     total = round(sum(l.hours for l in logs), 2)
     return {"days": days, "entries": len(logs), "hours": total}
+
+
+# -------------------------
+# Agent/background scheduling helpers
+# -------------------------
+
+def _list_calendars_raw():
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+    return svc.calendarList().list(maxResults=100).execute().get("items", [])
+
+
+def _collect_busy_ranges(start_iso: str, end_iso: str, calendar_ids: list[str] | None = None):
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+
+    all_cals = _list_calendars_raw()
+    selected = []
+    for c in all_cals:
+        cid = c.get("id")
+        if cid == "sv.swedish#holiday@group.v.calendar.google.com":
+            continue
+        if calendar_ids and cid not in calendar_ids:
+            continue
+        selected.append(cid)
+
+    busy = []
+    for cid in selected:
+        evs = svc.events().list(
+            calendarId=cid,
+            singleEvents=True,
+            orderBy="startTime",
+            timeMin=start_iso,
+            timeMax=end_iso,
+            maxResults=250,
+        ).execute().get("items", [])
+
+        for e in evs:
+            s = e.get("start", {})
+            en = e.get("end", {})
+            if "dateTime" not in s or "dateTime" not in en:
+                continue
+            try:
+                sdt = datetime.fromisoformat(s["dateTime"].replace("Z", "+00:00"))
+                edt = datetime.fromisoformat(en["dateTime"].replace("Z", "+00:00"))
+                busy.append((sdt, edt))
+            except Exception:
+                continue
+
+    busy.sort(key=lambda x: x[0])
+    merged = []
+    for sdt, edt in busy:
+        if not merged or sdt > merged[-1][1]:
+            merged.append([sdt, edt])
+        else:
+            merged[-1][1] = max(merged[-1][1], edt)
+    return [(x[0], x[1]) for x in merged]
+
+
+def _slot_overlaps(slot_start: datetime, slot_end: datetime, busy_ranges: list[tuple[datetime, datetime]]):
+    for bs, be in busy_ranges:
+        if slot_start < be and slot_end > bs:
+            return True
+    return False
+
+
+@app.post("/api/agent/suggest-slots")
+async def suggest_slots(request: Request):
+    """
+    Background-friendly slot suggestion endpoint.
+    Body example:
+    {
+      "durationMin": 120,
+      "startDate": "2026-03-11",
+      "endDate": "2026-03-18",
+      "dayStartHour": 8,
+      "dayEndHour": 22,
+      "calendarIds": ["eric.hm.berg@gmail.com"],
+      "avoidWeekends": false,
+      "maxResults": 5,
+      "timeZone": "Europe/Stockholm"
+    }
+    """
+    body = await request.json()
+    duration_min = int(body.get("durationMin", 60))
+    start_date = date.fromisoformat(body.get("startDate"))
+    end_date = date.fromisoformat(body.get("endDate"))
+    day_start = int(body.get("dayStartHour", 8))
+    day_end = int(body.get("dayEndHour", 22))
+    avoid_weekends = bool(body.get("avoidWeekends", False))
+    max_results = int(body.get("maxResults", 5))
+    tz_name = body.get("timeZone", "Europe/Stockholm")
+    tz = ZoneInfo(tz_name)
+
+    start_dt = datetime.combine(start_date, datetime.min.time(), tzinfo=tz)
+    end_dt = datetime.combine(end_date + timedelta(days=1), datetime.min.time(), tzinfo=tz)
+
+    busy = _collect_busy_ranges(start_dt.isoformat(), end_dt.isoformat(), body.get("calendarIds"))
+
+    step = 15
+    out = []
+    cur_day = start_date
+    while cur_day <= end_date and len(out) < max_results:
+        wd = datetime.combine(cur_day, datetime.min.time(), tzinfo=tz).weekday()  # 0 Monday
+        if avoid_weekends and wd >= 5:
+            cur_day += timedelta(days=1)
+            continue
+
+        slot_start = datetime(cur_day.year, cur_day.month, cur_day.day, day_start, 0, tzinfo=tz)
+        day_limit = datetime(cur_day.year, cur_day.month, cur_day.day, day_end, 0, tzinfo=tz)
+
+        while slot_start + timedelta(minutes=duration_min) <= day_limit and len(out) < max_results:
+            slot_end = slot_start + timedelta(minutes=duration_min)
+            if not _slot_overlaps(slot_start, slot_end, busy):
+                out.append({
+                    "start": slot_start.isoformat(),
+                    "end": slot_end.isoformat(),
+                    "score": 1.0,
+                    "reason": "Earliest free slot",
+                })
+            slot_start += timedelta(minutes=step)
+
+        cur_day += timedelta(days=1)
+
+    return {"items": out, "count": len(out)}
+
+
+@app.post("/api/agent/book-slot")
+async def agent_book_slot(request: Request):
+    body = await request.json()
+    created = _create_event(
+        body["calendarId"],
+        body["summary"],
+        body.get("description", ""),
+        body["start"],
+        body["end"],
+        body.get("timeZone", "Europe/Stockholm"),
+        body.get("recurrenceRule"),
+    )
+    return {"ok": True, "id": created.get("id"), "htmlLink": created.get("htmlLink")}
+
+
+@app.post("/api/agent/move-event")
+async def agent_move_event(request: Request):
+    body = await request.json()
+    apply_series = bool(body.get("applySeries", False))
+    target_event_id = body.get("seriesEventId") if apply_series and body.get("seriesEventId") else body["eventId"]
+
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+    updated = svc.events().patch(
+        calendarId=body["calendarId"],
+        eventId=target_event_id,
+        body={
+            "start": {"dateTime": body["newStart"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
+            "end": {"dateTime": body["newEnd"], "timeZone": body.get("timeZone", "Europe/Stockholm")},
+        },
+    ).execute()
+    return {"ok": True, "id": updated.get("id")}
