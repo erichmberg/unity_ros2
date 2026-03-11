@@ -196,6 +196,48 @@
 
     pre { background:#10152a; border:1px solid var(--line); border-radius:8px; padding:8px; color:#b8c8ef; }
 
+    .thesis-timeline-day { margin-bottom: 12px; }
+    .thesis-day-label { font-weight: 700; color: #ffb3b3; margin-bottom: 6px; }
+    .thesis-track-wrap { display: grid; grid-template-columns: 52px 1fr; gap: 8px; }
+    .thesis-hour-rail {
+      position: relative;
+      border-right: 1px solid #6a1a1a;
+      color: #d9a3a3;
+      font-size: 11px;
+    }
+    .thesis-hour-mark {
+      position: absolute;
+      right: 6px;
+      transform: translateY(-50%);
+      opacity: .9;
+    }
+    .thesis-day-track {
+      position: relative;
+      border: 1px solid #7a1111;
+      border-radius: 8px;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 86, 86, 0.15) 0,
+        rgba(255, 86, 86, 0.15) 1px,
+        transparent 1px,
+        transparent var(--thesis-hour-h)
+      );
+      overflow: hidden;
+    }
+    .thesis-event-block {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      border-radius: 8px;
+      border: 1px solid #d64a4a;
+      background: linear-gradient(180deg, #b21f1f 0%, #7f1010 70%, #5a0b0b 100%);
+      color: #fff;
+      padding: 4px 6px;
+      font-size: 12px;
+      line-height: 1.2;
+      box-shadow: 0 4px 10px rgba(0,0,0,.35);
+    }
+
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
       align-items: center; justify-content: center; z-index: 50;
@@ -1332,6 +1374,19 @@ async function loadThesisSummary(days){
     return;
   }
 
+  const esc = (s='') => String(s)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
+
+  const hourH = 24;
+  const startHour = 6;
+  const endHour = 24;
+  const totalH = (endHour - startHour) * hourH;
+  wrap.style.setProperty('--thesis-hour-h', `${hourH}px`);
+
   const byDay = new Map();
   for (const l of logs) {
     const d = new Date(l.startedAt);
@@ -1342,16 +1397,32 @@ async function loadThesisSummary(days){
 
   let html = '';
   for (const [day, items] of byDay.entries()) {
-    html += `<div style="margin-bottom:10px;"><div style="font-weight:700; color:#ffb3b3; margin-bottom:6px;">${day}</div>`;
-    html += '<div style="display:flex; gap:8px; flex-wrap:wrap;">';
-    for (const it of items) {
-      const w = Math.max(90, Math.round(it.hours * 90));
-      html += `<div title="${it.summary}" style="background:linear-gradient(180deg,#9e1c1c,#5e0e0e); color:#fff; border:1px solid #c43a3a; border-radius:8px; padding:8px; min-height:52px; width:${w}px; box-shadow:0 2px 8px rgba(0,0,0,.35);">`+
-              `<div style="font-weight:700; font-size:12px; overflow-wrap:anywhere;">${it.summary}</div>`+
-              `<div style="font-size:11px; opacity:.9; margin-top:4px;">${it.hours}h · ${it.taskType || 'uncategorized'}</div>`+
-              `</div>`;
+    let rail = '';
+    for (let h = startHour; h <= endHour; h += 2) {
+      const y = (h - startHour) * hourH;
+      rail += `<div class="thesis-hour-mark" style="top:${y}px;">${pad(h%24)}:00</div>`;
     }
-    html += '</div></div>';
+
+    let blocks = '';
+    for (const it of items) {
+      const s = new Date(it.startedAt);
+      const sm = s.getHours() * 60 + s.getMinutes();
+      const em = sm + Math.round((Number(it.hours) || 0) * 60);
+      const top = ((sm - startHour*60) / 60) * hourH;
+      const height = Math.max(16, ((em - sm) / 60) * hourH);
+      const clampedTop = Math.max(0, Math.min(totalH - 16, top));
+      blocks += `<div class="thesis-event-block" style="top:${clampedTop}px; height:${height}px;" title="${esc(it.summary)}">`+
+                `<div style="font-weight:700; overflow-wrap:anywhere;">${esc(it.summary)}</div>`+
+                `<div style="font-size:11px; opacity:.9; margin-top:2px;">${esc(String(it.hours))}h · ${esc(it.taskType || 'uncategorized')}</div>`+
+                `</div>`;
+    }
+
+    html += `<div class="thesis-timeline-day">`+
+            `<div class="thesis-day-label">${day}</div>`+
+            `<div class="thesis-track-wrap">`+
+            `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
+            `<div class="thesis-day-track" style="height:${totalH}px;">${blocks}</div>`+
+            `</div></div>`;
   }
   wrap.innerHTML = html;
 }
