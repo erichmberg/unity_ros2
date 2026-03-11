@@ -671,6 +671,7 @@ let visibleHourStart = DEFAULT_HOUR_START;
 let visibleHourEnd = DEFAULT_HOUR_END;
 let calendars = [];
 let weekStart = getMonday(new Date());
+let monthAnchor = (() => { const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d; })();
 let calendarView = localStorage.getItem('nasHubCalendarView') || 'week';
 let selectedEvent = null;
 let modalEditMode = false;
@@ -702,6 +703,11 @@ function pad(n){ return String(n).padStart(2, '0'); }
 function getMonday(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
 function setCalendarView(view){
   calendarView = view === 'month' ? 'month' : 'week';
+  if (calendarView === 'month') {
+    const d = new Date(weekStart);
+    d.setDate(1); d.setHours(0,0,0,0);
+    monthAnchor = d;
+  }
   localStorage.setItem('nasHubCalendarView', calendarView);
   loadCalendarView();
 }
@@ -713,10 +719,9 @@ function loadCalendarView(){
 
 function shiftWeek(days){
   if (calendarView === 'month') {
-    const m = new Date(weekStart);
-    m.setDate(1);
-    m.setMonth(m.getMonth() + (days >= 0 ? 1 : -1));
-    weekStart = getMonday(m);
+    monthAnchor.setMonth(monthAnchor.getMonth() + (days >= 0 ? 1 : -1));
+    monthAnchor.setDate(1);
+    weekStart = getMonday(monthAnchor);
   } else {
     weekStart.setDate(weekStart.getDate()+days);
   }
@@ -725,7 +730,8 @@ function shiftWeek(days){
 function goToCurrentWeek(){
   if (calendarView === 'month') {
     const m = new Date();
-    m.setDate(1);
+    m.setDate(1); m.setHours(0,0,0,0);
+    monthAnchor = m;
     weekStart = getMonday(m);
   } else {
     weekStart=getMonday(new Date());
@@ -1771,7 +1777,7 @@ async function loadMonth(){
   setStatus('Loading month…');
   try {
     await loadCalendars();
-    const monthStart = new Date(weekStart);
+    const monthStart = new Date(monthAnchor);
     monthStart.setDate(1);
     monthStart.setHours(0,0,0,0);
     const gridStart = getMonday(monthStart);
