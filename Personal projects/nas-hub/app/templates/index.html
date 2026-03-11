@@ -321,10 +321,12 @@
         <div id="mEditMode" class="hidden">
           <input id="mTitle" type="text" placeholder="Title" />
           <textarea id="mDesc" rows="3" placeholder="Description"></textarea>
-          <label>Start</label>
-          <input id="mStart" type="datetime-local" step="900" lang="sv-SE" />
-          <label>End</label>
-          <input id="mEnd" type="datetime-local" step="900" lang="sv-SE" />
+          <label>Date</label>
+          <input id="mDate" type="date" lang="sv-SE" />
+          <label>Start (24h)</label>
+          <input id="mStartTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" />
+          <label>End (24h)</label>
+          <input id="mEndTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" />
           <label>Recurrence</label>
           <select id="mRecurrence">
             <option value="">Does not repeat</option>
@@ -350,10 +352,12 @@
         <input id="cTitle" type="text" placeholder="Event title" />
         <label>Description</label>
         <textarea id="cDesc" rows="3" placeholder="Description"></textarea>
-        <label>Start</label>
-        <input id="cStart" type="datetime-local" step="900" lang="sv-SE" />
-        <label>End</label>
-        <input id="cEnd" type="datetime-local" step="900" lang="sv-SE" />
+        <label>Date</label>
+        <input id="cDate" type="date" lang="sv-SE" />
+        <label>Start (24h)</label>
+        <input id="cStartTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" />
+        <label>End (24h)</label>
+        <input id="cEndTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" />
         <label>Recurrence</label>
         <select id="cRecurrence">
           <option value="">Does not repeat</option>
@@ -519,13 +523,19 @@ function openCreateModal(prefill = null){
   }
 
   if (prefill){
-    document.getElementById('cStart').value = prefill.start;
-    document.getElementById('cEnd').value = prefill.end;
+    const s = splitDateTimeLocal(prefill.start);
+    const e = splitDateTimeLocal(prefill.end);
+    document.getElementById('cDate').value = s.date;
+    document.getElementById('cStartTime').value = s.time;
+    document.getElementById('cEndTime').value = e.time;
   } else {
     const now = new Date();
     const next = new Date(now.getTime() + 60*60*1000);
-    document.getElementById('cStart').value = toLocalInputValue(now.toISOString());
-    document.getElementById('cEnd').value = toLocalInputValue(next.toISOString());
+    const s = splitDateTimeLocal(toLocalInputValue(now.toISOString()));
+    const e = splitDateTimeLocal(toLocalInputValue(next.toISOString()));
+    document.getElementById('cDate').value = s.date;
+    document.getElementById('cStartTime').value = s.time;
+    document.getElementById('cEndTime').value = e.time;
   }
   document.getElementById('cTitle').value = '';
   document.getElementById('cDesc').value = '';
@@ -538,12 +548,20 @@ function closeCreateModal(){
 }
 
 async function saveCreateModalEvent(){
+  const date = document.getElementById('cDate').value;
+  const st = document.getElementById('cStartTime').value.trim();
+  const en = document.getElementById('cEndTime').value.trim();
+  if (!date || !isHHMM(st) || !isHHMM(en)) {
+    alert('Use valid 24h time format HH:MM for start and end.');
+    return;
+  }
+
   const payload = {
     calendarId: document.getElementById('cCalendar').value,
     summary: document.getElementById('cTitle').value.trim() || '(no title)',
     description: document.getElementById('cDesc').value.trim(),
-    start: `${document.getElementById('cStart').value}:00`,
-    end: `${document.getElementById('cEnd').value}:00`,
+    start: combineDateAndTime(date, st),
+    end: combineDateAndTime(date, en),
     timeZone: 'Europe/Stockholm',
     recurrenceRule: document.getElementById('cRecurrence').value || null,
   };
@@ -830,6 +848,20 @@ function toLocalInputValue(dtRaw){
   return `${y}-${m}-${day}T${h}:${mi}`;
 }
 
+function splitDateTimeLocal(localDT){
+  if (!localDT || !localDT.includes('T')) return {date:'', time:''};
+  const [date, time] = localDT.split('T');
+  return {date, time: (time || '').slice(0,5)};
+}
+
+function isHHMM(v){
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test((v || '').trim());
+}
+
+function combineDateAndTime(date, time){
+  return `${date}T${time}:00`;
+}
+
 function openEventModal(ev){
   selectedEvent = ev;
   modalEditMode = false;
@@ -844,8 +876,11 @@ function openEventModal(ev){
 
   document.getElementById('mTitle').value = ev.summary || '';
   document.getElementById('mDesc').value = ev.description || '';
-  document.getElementById('mStart').value = toLocalInputValue(ev.start?.dateTime);
-  document.getElementById('mEnd').value = toLocalInputValue(ev.end?.dateTime);
+  const mS = splitDateTimeLocal(toLocalInputValue(ev.start?.dateTime));
+  const mE = splitDateTimeLocal(toLocalInputValue(ev.end?.dateTime));
+  document.getElementById('mDate').value = mS.date;
+  document.getElementById('mStartTime').value = mS.time;
+  document.getElementById('mEndTime').value = mE.time;
 
   const rec = (ev.recurrence && ev.recurrence.length) ? ev.recurrence[0] : '';
   document.getElementById('mRecurrence').value = rec === 'RRULE:FREQ=WEEKLY' ? rec : '';
@@ -903,11 +938,19 @@ function hideHoverTip(){
 
 async function saveModalEvent(){
   if (!selectedEvent) return;
+  const date = document.getElementById('mDate').value;
+  const st = document.getElementById('mStartTime').value.trim();
+  const en = document.getElementById('mEndTime').value.trim();
+  if (!date || !isHHMM(st) || !isHHMM(en)) {
+    alert('Use valid 24h time format HH:MM for start and end.');
+    return;
+  }
+
   const payload = {
     summary: document.getElementById('mTitle').value.trim(),
     description: document.getElementById('mDesc').value.trim(),
-    start: `${document.getElementById('mStart').value}:00`,
-    end: `${document.getElementById('mEnd').value}:00`,
+    start: combineDateAndTime(date, st),
+    end: combineDateAndTime(date, en),
     timeZone: 'Europe/Stockholm',
     recurrenceRule: document.getElementById('mRecurrence').value,
     applySeries: document.getElementById('mApplySeries').checked,
