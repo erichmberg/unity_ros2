@@ -523,10 +523,14 @@
           <input id="dCourse" type="text" placeholder="Course or project" />
           <label>Calendar</label>
           <select id="dCalendar"></select>
-          <label>Done by (24h)</label>
-          <input id="dDoneBy" type="datetime-local" />
-          <label>Hard deadline (24h)</label>
-          <input id="dDeadline" type="datetime-local" />
+          <label>Done-by date</label>
+          <input id="dDoneByDate" type="date" />
+          <label>Done-by time (24h)</label>
+          <input id="dDoneByTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" />
+          <label>Deadline date</label>
+          <input id="dDeadlineDate" type="date" />
+          <label>Deadline time (24h)</label>
+          <input id="dDeadlineTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" />
           <label>Start reminders (days before)</label>
           <input id="dStartDays" type="number" min="1" value="14" />
           <label>Reminder every (days)</label>
@@ -1398,11 +1402,21 @@ async function loadDeadlines(){
 }
 
 async function createDeadline(){
+  const doneDate = document.getElementById('dDoneByDate').value;
+  const doneTime = (document.getElementById('dDoneByTime').value || '').trim();
+  const dlDate = document.getElementById('dDeadlineDate').value;
+  const dlTime = (document.getElementById('dDeadlineTime').value || '').trim();
+
+  if (!isHHMM(doneTime) || !isHHMM(dlTime)) {
+    alert('Use valid 24h time format HH:MM for done-by and deadline.');
+    return;
+  }
+
   const payload = {
     title: document.getElementById('dTitle').value.trim(),
     course: document.getElementById('dCourse').value.trim(),
-    doneByAt: document.getElementById('dDoneBy').value,
-    deadlineAt: document.getElementById('dDeadline').value,
+    doneByAt: combineDateAndTime(doneDate, doneTime),
+    deadlineAt: combineDateAndTime(dlDate, dlTime),
     remindStartDays: Number(document.getElementById('dStartDays').value || 14),
     remindEveryDays: Number(document.getElementById('dEveryDays').value || 2),
     priority: document.getElementById('dPriority').value,
@@ -1410,14 +1424,18 @@ async function createDeadline(){
     calendarId: document.getElementById('dCalendar').value || 'eric.hm.berg@gmail.com',
     timeZone: 'Europe/Stockholm',
   };
-  if (!payload.title || !payload.doneByAt || !payload.deadlineAt) { alert('Fill title, done-by, and deadline.'); return; }
+  if (!payload.title || !doneDate || !dlDate) { alert('Fill title, done-by, and deadline.'); return; }
   showLoading('Creating deadline…');
   const r = await fetch('/api/deadlines', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
   const j = await r.json().catch(()=>({}));
   if (!r.ok) { hideLoading(); alert(j.detail || 'Create deadline failed'); return; }
+
+  // Jump calendar view to done-by week so the new events are visible immediately.
+  weekStart = getMonday(new Date(payload.doneByAt));
+  try { await loadWeek(); } catch {}
+
   hideLoading();
   await loadDeadlines();
-  try { await loadWeek(); } catch {}
   alert(`Deadline created ✅\nCalendar: ${j.calendarId || payload.calendarId}\nDone-by event: ${j.doneByEventId || '-'}\nDeadline event: ${j.deadlineEventId || '-'}`);
 }
 
