@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import urllib.parse
@@ -231,6 +232,7 @@ async def create_event(request: Request):
             body.get("timeZone", "Europe/Stockholm"),
             body.get("recurrenceRule"),
         )
+        _record_activity("calendar.create", {"calendarId": body["calendarId"], "eventId": created.get("id"), "summary": body.get("summary", "")})
         return {"id": created.get("id"), "htmlLink": created.get("htmlLink")}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Create event failed: {e}")
@@ -284,6 +286,7 @@ async def update_event(calendar_id: str, event_id: str, request: Request):
             eventId=target_event_id,
             body=patch_body,
         ).execute()
+        _record_activity("calendar.update", {"calendarId": calendar_id, "eventId": updated.get("id"), "summary": body.get("summary", "")})
         return {"ok": True, "id": updated.get("id")}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Update failed: {e}")
@@ -295,6 +298,7 @@ def delete_event(calendar_id: str, event_id: str, applySeries: bool = False, ser
     creds = get_google_creds()
     svc = build("calendar", "v3", credentials=creds)
     svc.events().delete(calendarId=calendar_id, eventId=target_event_id).execute()
+    _record_activity("calendar.delete", {"calendarId": calendar_id, "eventId": target_event_id})
     return JSONResponse({"ok": True})
 
 
@@ -335,10 +339,20 @@ def add_thesis_log(
         combined_details = f"{combined_details}\n\n{meta_blob}".strip()
 
     with Session(engine) as db:
+        existing = db.scalars(
+            select(ThesisLog).where(
+                ThesisLog.started_at == dt,
+                ThesisLog.summary == summary,
+                ThesisLog.hours == hours,
+            )
+        ).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="Duplicate thesis log detected")
+
         row = ThesisLog(started_at=dt, hours=hours, summary=summary, details=combined_details)
         db.add(row)
         db.flush()
-        _record_history(db, "create", {"after": _log_to_dict(row)})
+        _record_history(db, "thesis.create", {"after": _log_to_dict(row)})
         db.commit()
     return RedirectResponse(url="/", status_code=303)
 
@@ -388,6 +402,12 @@ def _record_history(db: Session, action: str, payload: dict):
     db.add(ThesisLogHistory(created_at=datetime.utcnow(), action=action, payload=json.dumps(payload, ensure_ascii=False)))
 
 
+def _record_activity(action: str, payload: dict):
+    with Session(engine) as db:
+        db.add(ThesisLogHistory(created_at=datetime.utcnow(), action=action, payload=json.dumps(payload, ensure_ascii=False)))
+        db.commit()
+
+
 @app.get("/api/thesis-logs")
 def thesis_logs(days: int = 7):
     with Session(engine) as db:
@@ -424,7 +444,7 @@ def delete_thesis_log(log_id: int):
             raise HTTPException(status_code=404, detail="Thesis log not found")
         before = _log_to_dict(row)
         db.delete(row)
-        _record_history(db, "delete", {"before": before})
+        _record_history(db, "thesis.delete", {"before": before})
         db.commit()
     return {"ok": True, "id": log_id}
 
@@ -471,7 +491,7 @@ async def update_thesis_log(log_id: int, request: Request):
 
         row.details = _compose_details(body.get("details", _base_details(row.details or "")), meta)
         db.flush()
-        _record_history(db, "update", {"before": before, "after": _log_to_dict(row)})
+        _record_history(db, "thesis.update", {"before": before, "after": _log_to_dict(row)})
         db.commit()
 
     return {"ok": True, "id": log_id}
@@ -505,13 +525,13 @@ def thesis_undo_last():
             raise HTTPException(status_code=404, detail="No thesis history to undo")
         payload = json.loads(h.payload or "{}")
 
-        if h.action == "create":
+        if h.action == "thesis.create":
             after = payload.get("after") or {}
             rid = after.get("id")
             row = db.get(ThesisLog, rid) if rid else None
             if row:
                 db.delete(row)
-        elif h.action == "delete":
+        elif h.action == "thesis.delete":
             before = payload.get("before") or {}
             row = ThesisLog(
                 id=before.get("id"),
@@ -521,7 +541,7 @@ def thesis_undo_last():
                 details=before.get("details", ""),
             )
             db.merge(row)
-        elif h.action == "update":
+        elif h.action == "thesis.update":
             before = payload.get("before") or {}
             row = db.get(ThesisLog, before.get("id"))
             if row:
@@ -566,6 +586,46 @@ def thesis_export_csv(days: int = 0):
     )
 
 
+@app.get("/api/thesis-export.xlsx")
+def thesis_export_xlsx(days: int = 0):
+    try:
+        from openpyxl import Workbook
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"openpyxl missing: {e}")
+
+    with Session(engine) as db:
+        if days and days > 0:
+            cutoff = datetime.now() - timedelta(days=days)
+            logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff).order_by(ThesisLog.started_at.asc())).all()
+        else:
+            logs = db.scalars(select(ThesisLog).order_by(ThesisLog.started_at.asc())).all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Thesis Logs"
+    ws.append(["id", "started_at", "hours", "summary", "task_type", "category_tags", "details"])
+    for l in logs:
+        meta = _extract_meta(l.details or "")
+        ws.append([
+            l.id,
+            l.started_at.isoformat() if l.started_at else "",
+            float(l.hours or 0),
+            l.summary or "",
+            meta.get("task_type", "") or "",
+            meta.get("category_tags", "") or "",
+            _base_details(l.details or ""),
+        ])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=thesis_logs.xlsx"},
+    )
+
+
 @app.get("/api/thesis-insights")
 def thesis_insights(target_weekly_hours: float = 20.0):
     now = datetime.now()
@@ -579,6 +639,56 @@ def thesis_insights(target_weekly_hours: float = 20.0):
     else:
         message = f"Behind target by {abs(delta)}h in the last 7 days. Want me to schedule a catch-up block?"
     return {"hours7d": round(hours,2), "targetWeeklyHours": target_weekly_hours, "delta": delta, "message": message}
+
+
+@app.post("/api/thesis-bulk-categorize")
+async def thesis_bulk_categorize(request: Request):
+    body = await request.json()
+    days = int(body.get("days", 7))
+    task_type = (body.get("taskType") or "").strip()
+    category_tags = [t.strip() for t in (body.get("categoryTags", []) or []) if str(t).strip()]
+    keyword = (body.get("keyword") or "").strip().lower()
+
+    if not task_type and not category_tags:
+        raise HTTPException(status_code=400, detail="taskType or categoryTags required")
+
+    with Session(engine) as db:
+        q = select(ThesisLog)
+        if days > 0:
+            cutoff = datetime.now() - timedelta(days=days)
+            q = q.where(ThesisLog.started_at >= cutoff)
+        logs = db.scalars(q).all()
+
+        updated = 0
+        for row in logs:
+            base = _base_details(row.details or "")
+            if keyword and keyword not in ((row.summary or "") + " " + base).lower():
+                continue
+            meta = _extract_meta(row.details or "")
+            if task_type:
+                meta["task_type"] = task_type
+            if category_tags:
+                meta["category_tags"] = ",".join(category_tags)
+            row.details = _compose_details(base, meta)
+            updated += 1
+
+        db.commit()
+    _record_activity("thesis.bulk_categorize", {"updated": updated, "days": days, "taskType": task_type, "categoryTags": category_tags, "keyword": keyword})
+    return {"ok": True, "updated": updated}
+
+
+@app.get("/api/activity")
+def activity_feed(limit: int = 20):
+    with Session(engine) as db:
+        rows = db.scalars(select(ThesisLogHistory).order_by(ThesisLogHistory.id.desc()).limit(max(1, min(limit, 200)))).all()
+    items = []
+    for r in rows:
+        try:
+            payload = json.loads(r.payload or "{}")
+        except Exception:
+            payload = {}
+        items.append({"id": r.id, "createdAt": r.created_at.isoformat() if r.created_at else None, "action": r.action, "payload": payload})
+    return {"items": items}
 
 
 @app.get("/api/thesis-summary")

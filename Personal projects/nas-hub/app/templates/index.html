@@ -470,6 +470,9 @@
           <button type="button" onclick="shiftThesisWindow(7)">Next week →</button>
           <button type="button" onclick="undoLastThesisAction()">Undo last</button>
           <button type="button" onclick="exportThesisCsvPrompt()">Export CSV</button>
+          <button type="button" onclick="bulkRecategorizePrompt()">Bulk recategorize</button>
+          <label for="thesisWeeklyTarget" style="margin:0 0 0 8px; font-size:12px; opacity:.9;">Weekly target (h)</label>
+          <input id="thesisWeeklyTarget" type="number" min="1" step="0.5" style="max-width:90px;" onchange="saveWeeklyTarget()" />
           <label for="thesisRangeDays" style="margin:0 0 0 8px; font-size:12px; opacity:.9;">Range</label>
           <select id="thesisRangeDays" onchange="loadThesisSummary(Number(this.value))" style="max-width:180px;">
             <option value="7">Last 7 days</option>
@@ -478,6 +481,7 @@
           </select>
         </div>
         <div id="thesisInsight" class="thesis-list-box" style="margin-top:10px;"></div>
+        <div id="activityFeed" class="thesis-list-box" style="margin-top:10px;"></div>
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
         <div id="thesisSummary" style="margin-top:10px;"></div>
       </div>
@@ -1474,14 +1478,18 @@ async function loadThesisSummary(days){
   const d = new Date(thesisViewEndDate);
   d.setHours(23,59,59,999);
 
-  const [sr, lr, ir] = await Promise.all([
+  const targetWeekly = getWeeklyTarget();
+  const fetchDays = Number(days) === 0 ? 0 : 3650;
+  const [sr, lr, ir, ar] = await Promise.all([
     fetch(`/api/thesis-summary?days=${days}`),
-    fetch(`/api/thesis-logs?days=3650`),
-    fetch(`/api/thesis-insights?target_weekly_hours=20`),
+    fetch(`/api/thesis-logs?days=${fetchDays}`),
+    fetch(`/api/thesis-insights?target_weekly_hours=${encodeURIComponent(targetWeekly)}`),
+    fetch(`/api/activity?limit=12`),
   ]);
   const summary = await sr.json();
   const logsData = await lr.json();
   const insight = await ir.json();
+  const activity = await ar.json();
 
   const esc = (s='') => String(s)
     .replaceAll('&','&amp;')
@@ -1516,8 +1524,18 @@ async function loadThesisSummary(days){
       `<div class="thesis-list-box"><b>Blockers</b><ul>${blockers}</ul></div>`+
       `<div class="thesis-list-box"><b>Next actions</b><ul>${nextActions}</ul></div>`);
 
+  const targetInput = document.getElementById('thesisWeeklyTarget');
+  if (targetInput && !targetInput.value) targetInput.value = String(getWeeklyTarget());
+
   const insightEl = document.getElementById('thesisInsight');
   if (insightEl) insightEl.innerHTML = `<b>Weekly status</b><div style="margin-top:4px;">${esc(insight.message || '')}</div>`;
+
+  const actItems = (activity.items || []).slice(0, 8).map(a => {
+    const t = a.createdAt ? new Date(a.createdAt).toLocaleString('sv-SE', { hour12:false }) : '';
+    return `<li><b>${esc(a.action)}</b> <span style="opacity:.75;">${esc(t)}</span></li>`;
+  }).join('') || '<li>No recent activity.</li>';
+  const actEl = document.getElementById('activityFeed');
+  if (actEl) actEl.innerHTML = `<b>Recent activity</b><ul>${actItems}</ul>`;
 
   const wrap = document.getElementById('thesisScheduleWindow');
   const allLogs = logsData.items || [];
@@ -1643,6 +1661,34 @@ async function loadThesisSummary(days){
   wrap.innerHTML = allRowsHtml;
 }
 
+function getWeeklyTarget(){
+  return Number(localStorage.getItem('thesisWeeklyTarget') || 20);
+}
+
+function saveWeeklyTarget(){
+  const v = Number(document.getElementById('thesisWeeklyTarget')?.value || 20);
+  localStorage.setItem('thesisWeeklyTarget', String(v));
+  loadThesisSummary(Number(document.getElementById('thesisRangeDays')?.value || 7));
+}
+
+async function bulkRecategorizePrompt(){
+  const days = Number(prompt('Bulk recategorize range in days (0 = all time):', '30') || '30');
+  const taskType = prompt('Set primary task type (coding/reading/experiment/writing/meeting/planning):', 'coding');
+  if (!taskType) return;
+  const tags = prompt('Set category tags (comma separated, optional):', '') || '';
+  const keyword = prompt('Only entries containing keyword (optional):', '') || '';
+  showLoading('Applying bulk recategorization…');
+  const r = await fetch('/api/thesis-bulk-categorize', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ days, taskType, categoryTags: tags.split(',').map(x=>x.trim()).filter(Boolean), keyword })
+  });
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) { hideLoading(); alert(j.detail || 'Bulk recategorize failed'); return; }
+  hideLoading();
+  alert(`Updated ${j.updated || 0} logs.`);
+  loadThesisSummary(Number(document.getElementById('thesisRangeDays')?.value || 7));
+}
+
 function shiftThesisWindow(deltaDays){
   thesisViewEndDate.setDate(thesisViewEndDate.getDate() + deltaDays);
   const days = Number(document.getElementById('thesisRangeDays')?.value || 7);
@@ -1680,7 +1726,11 @@ function exportThesisCsvPrompt(){
   else if (p === '7') days = 7;
   else if (p === '30') days = 30;
   else if (p === 'current') days = cur;
-  window.open(`/api/thesis-export.csv?days=${days}`, '_blank');
+  const fmt = prompt('Format? Type: csv or xlsx', 'csv');
+  if (fmt === null) return;
+  const f = String(fmt).trim().toLowerCase();
+  const ext = f === 'xlsx' ? 'xlsx' : 'csv';
+  window.open(`/api/thesis-export.${ext}?days=${days}`, '_blank');
 }
 
 function toDateTimeLocal(dtRaw){
@@ -1792,6 +1842,8 @@ document.addEventListener('keydown', (ev) => {
 });
 
 initTheme();
+const targetField = document.getElementById('thesisWeeklyTarget');
+if (targetField) targetField.value = String(getWeeklyTarget());
 const initialTab = localStorage.getItem('nasHubActiveTab') || 'calendar';
 switchTab(initialTab === 'thesis' ? 'thesis' : 'calendar');
 loadWeek();
