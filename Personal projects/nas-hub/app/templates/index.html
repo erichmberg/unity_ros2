@@ -107,7 +107,7 @@
 
     .now-time-chip {
       position: absolute;
-      left: 4px; /* inside the hour axis on the left side */
+      right: 6px; /* anchor near right side of hour rail */
       transform: translateY(-50%);
       background: #ff5f5f;
       color: #fff;
@@ -119,6 +119,16 @@
       display: none;
       white-space: nowrap;
       box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    }
+    .now-time-chip::after {
+      content: "";
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      width: 8px;
+      height: 2px;
+      background: #ff5f5f;
+      transform: translateY(-50%);
     }
 
     .now-line {
