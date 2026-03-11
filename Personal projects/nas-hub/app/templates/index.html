@@ -168,6 +168,15 @@
     .modal h3 { margin: 0 0 8px; }
     .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
     .icon-btn { width:auto; padding:6px 10px; }
+    .danger-text-btn {
+      width: auto;
+      background: transparent !important;
+      border: none !important;
+      color: #ff6b6b !important;
+      padding: 6px 2px;
+      font-weight: 700;
+    }
+    .danger-text-btn:hover { color: #ff4f4f !important; text-decoration: underline; }
     .view-field { margin: 6px 0; padding: 8px; border:1px solid var(--line); border-radius:8px; background: rgba(255,255,255,0.02); }
     .hidden { display:none !important; }
 
@@ -265,6 +274,9 @@
           <div class="view-field" id="mViewTime"></div>
           <div class="view-field" id="mViewDesc"></div>
           <div id="mInfo" class="small"></div>
+          <div style="margin-top:8px;">
+            <button type="button" class="danger-text-btn" onclick="deleteModalEvent()">Delete event</button>
+          </div>
         </div>
 
         <div id="mEditMode" class="hidden">
