@@ -460,44 +460,11 @@
     <div id="hoverTip" class="hover-tip"></div>
 
     <div id="tabThesis" class="hidden">
-    <div class="grid-2b">
-      <div class="card">
-        <h2>Add thesis log</h2>
-        <form method="post" action="/api/thesis-log" onsubmit="return submitThesisLogForm(event)">
-          <label>Date</label>
-          <input id="thDate" type="date" required>
-          <label>Start (24h)</label>
-          <input id="thTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" required>
-          <input id="thStartedAt" type="hidden" name="started_at">
-          <label>Hours</label>
-          <input type="number" step="0.25" name="hours" required>
-          <label>Summary</label>
-          <input type="text" name="summary" required>
-
-          <label>Task type (primary)</label>
-          <select name="task_type">
-            <option value="">(optional)</option>
-            <option value="coding">Coding</option>
-            <option value="reading">Reading</option>
-            <option value="experiment">Experiment</option>
-            <option value="writing">Writing</option>
-            <option value="meeting">Meeting</option>
-            <option value="planning">Planning</option>
-          </select>
-          <label>Extra categories (comma separated)</label>
-          <input type="text" name="category_tags" placeholder="coding,meeting,planning">
-          <label>Outcome</label>
-          <input type="text" name="outcome" placeholder="What moved forward?">
-          <label>Blocker</label>
-          <input type="text" name="blocker" placeholder="What got stuck?">
-          <label>Next action</label>
-          <input type="text" name="next_action" placeholder="Clear next step">
-
-          <button type="submit">Save log</button>
-        </form>
-      </div>
-      <div class="card">
-        <h2>Thesis summary</h2>
+    <div class="card">
+        <div class="modal-head" style="margin-bottom:8px;">
+          <h2 style="margin:0;">Thesis summary</h2>
+          <button id="thesisAddBtn" class="plus-btn" type="button" onclick="openThesisCreateModal()">＋</button>
+        </div>
         <div class="btn-row" style="align-items:center; gap:8px; flex-wrap:wrap;">
           <button type="button" onclick="shiftThesisWindow(-7)">← Prev week</button>
           <button type="button" onclick="shiftThesisWindow(7)">Next week →</button>
@@ -514,6 +481,46 @@
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
         <div id="thesisSummary" style="margin-top:10px;"></div>
       </div>
+    </div>
+
+  <div id="thesisCreateModalBackdrop" class="modal-backdrop" onclick="closeThesisCreateModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3 style="margin-top:0;">Add thesis log</h3>
+      <form method="post" action="/api/thesis-log" onsubmit="return submitThesisLogForm(event)">
+        <label>Date</label>
+        <input id="thDate" type="date" required>
+        <label>Start (24h)</label>
+        <input id="thTime" type="text" placeholder="HH:MM" inputmode="numeric" pattern="^([01]\d|2[0-3]):[0-5]\d$" required>
+        <input id="thStartedAt" type="hidden" name="started_at">
+        <label>Hours</label>
+        <input type="number" step="0.25" name="hours" required>
+        <label>Summary</label>
+        <input type="text" name="summary" required>
+
+        <label>Task type (primary)</label>
+        <select name="task_type">
+          <option value="">(optional)</option>
+          <option value="coding">Coding</option>
+          <option value="reading">Reading</option>
+          <option value="experiment">Experiment</option>
+          <option value="writing">Writing</option>
+          <option value="meeting">Meeting</option>
+          <option value="planning">Planning</option>
+        </select>
+        <label>Extra categories (comma separated)</label>
+        <input type="text" name="category_tags" placeholder="coding,meeting,planning">
+        <label>Outcome</label>
+        <input type="text" name="outcome" placeholder="What moved forward?">
+        <label>Blocker</label>
+        <input type="text" name="blocker" placeholder="What got stuck?">
+        <label>Next action</label>
+        <input type="text" name="next_action" placeholder="Clear next step">
+
+        <div class="btn-row">
+          <button type="submit">Save log</button>
+          <button type="button" onclick="closeThesisCreateModal()">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1081,6 +1088,7 @@ function closeAnyModal(){
   closeModal();
   closeCreateModal();
   closeThesisLogModal();
+  closeThesisCreateModal();
 }
 
 function showHoverTip(ev, item){
@@ -1589,48 +1597,70 @@ async function loadThesisSummary(days){
     rail += `<div class="thesis-hour-mark" style="top:${y}px;">${pad(h%24)}:00</div>`;
   }
 
-  const colCount = displayDays.length;
-  let header = '';
-  let cols = '';
-  for (const d of displayDays) {
-    const k = dayKey(d);
-    const items = grouped.get(k) || [];
-    const name = d.toLocaleDateString('sv-SE', { weekday:'short' });
-    const shortDate = d.toLocaleDateString('sv-SE', { month:'2-digit', day:'2-digit' });
-    header += `<div class="thesis-week-header-cell">${esc(name)} ${esc(shortDate)}</div>`;
+  const minCol = (Number(days) > 7 || Number(days) === 0) ? 96 : 0;
+  const rowSize = (Number(days) > 7 || Number(days) === 0) ? 7 : displayDays.length;
+  const rows = [];
+  for (let i=0; i<displayDays.length; i+=rowSize) rows.push(displayDays.slice(i, i+rowSize));
 
-    let blocks = '';
-    for (const it of items) {
-      const s = new Date(it.startedAt);
-      const sm = s.getHours() * 60 + s.getMinutes();
-      const em = sm + Math.round((Number(it.hours) || 0) * 60);
-      const top = ((sm - startHour*60) / 60) * hourH;
-      const height = Math.max(16, ((em - sm) / 60) * hourH);
-      const clampedTop = Math.max(0, Math.min(totalH - 16, top));
-      blocks += `<div class="thesis-event-block" data-log-id="${esc(String(it.id))}" onclick="openThesisLogModal('${esc(String(it.id))}')" style="top:${clampedTop}px; height:${height}px; cursor:pointer;" title="${esc(it.summary)}">`+
-                `<div style="font-weight:700; overflow-wrap:anywhere;">${esc(it.summary)}</div>`+
-                `<div style="font-size:11px; opacity:.9; margin-top:2px;">${esc(String(it.hours))}h · ${esc(it.taskType || 'uncategorized')}</div>`+
-                `</div>`;
+  let allRowsHtml = '';
+  for (const rowDays of rows) {
+    const colCount = rowDays.length;
+    let header = '';
+    let cols = '';
+
+    for (const d of rowDays) {
+      const k = dayKey(d);
+      const items = grouped.get(k) || [];
+      const name = d.toLocaleDateString('sv-SE', { weekday:'short' });
+      const shortDate = d.toLocaleDateString('sv-SE', { month:'2-digit', day:'2-digit' });
+      header += `<div class="thesis-week-header-cell">${esc(name)} ${esc(shortDate)}</div>`;
+
+      let blocks = '';
+      for (const it of items) {
+        const s = new Date(it.startedAt);
+        const sm = s.getHours() * 60 + s.getMinutes();
+        const em = sm + Math.round((Number(it.hours) || 0) * 60);
+        const top = ((sm - startHour*60) / 60) * hourH;
+        const height = Math.max(16, ((em - sm) / 60) * hourH);
+        const clampedTop = Math.max(0, Math.min(totalH - 16, top));
+        blocks += `<div class="thesis-event-block" data-log-id="${esc(String(it.id))}" onclick="openThesisLogModal('${esc(String(it.id))}')" style="top:${clampedTop}px; height:${height}px; cursor:pointer;" title="${esc(it.summary)}">`+
+                  `<div style="font-weight:700; overflow-wrap:anywhere;">${esc(it.summary)}</div>`+
+                  `<div style="font-size:11px; opacity:.9; margin-top:2px;">${esc(String(it.hours))}h · ${esc(it.taskType || 'uncategorized')}</div>`+
+                  `</div>`;
+      }
+      cols += `<div class="thesis-day-track" style="height:${totalH}px;">${blocks}</div>`;
     }
-    cols += `<div class="thesis-day-track" style="height:${totalH}px;">${blocks}</div>`;
+
+    allRowsHtml += `<div class="thesis-week-wrap" style="margin-bottom:12px;">`+
+      `<div class="thesis-week-header" style="grid-template-columns:52px repeat(${colCount}, minmax(${minCol}px,1fr));">`+
+        `<div></div>${header}`+
+      `</div>`+
+      `<div class="thesis-week-body">`+
+        `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
+        `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(${minCol}px,1fr));">${cols}</div>`+
+      `</div>`+
+    `</div>`;
   }
 
-  const minCol = (Number(days) > 7 || Number(days) === 0) ? 72 : 0;
-  wrap.innerHTML = `<div class="thesis-week-wrap">`+
-    `<div class="thesis-week-header" style="grid-template-columns:52px repeat(${colCount}, minmax(${minCol}px,1fr));">`+
-      `<div></div>${header}`+
-    `</div>`+
-    `<div class="thesis-week-body">`+
-      `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
-      `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(${minCol}px,1fr));">${cols}</div>`+
-    `</div>`+
-  `</div>`;
+  wrap.innerHTML = allRowsHtml;
 }
 
 function shiftThesisWindow(deltaDays){
   thesisViewEndDate.setDate(thesisViewEndDate.getDate() + deltaDays);
   const days = Number(document.getElementById('thesisRangeDays')?.value || 7);
   loadThesisSummary(days);
+}
+
+function openThesisCreateModal(){
+  const now = new Date();
+  document.getElementById('thDate').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById('thTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('thesisCreateModalBackdrop').style.display = 'flex';
+}
+
+function closeThesisCreateModal(){
+  const el = document.getElementById('thesisCreateModalBackdrop');
+  if (el) el.style.display = 'none';
 }
 
 async function undoLastThesisAction(){
