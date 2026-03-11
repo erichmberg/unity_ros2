@@ -128,8 +128,8 @@
     .resize-handle {
       position: absolute;
       left: 50%; transform: translateX(-50%);
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(255,255,255,.9);
+      width: 16px; height: 16px; border-radius: 50%;
+      background: rgba(255,255,255,.92);
       border: 1px solid rgba(0,0,0,.35);
       opacity: 0;
       transition: opacity .12s ease;
@@ -711,7 +711,14 @@ function renderWeekEvents(events){
             if (!startDt || !endDt) return;
             const startMin = startDt.getHours()*60 + startDt.getMinutes();
             const endMin = endDt.getHours()*60 + endDt.getMinutes();
-            resizeState = { event: src, day, track, edge, startMin, endMin };
+            const preview = document.createElement('div');
+            preview.className = 'drag-create';
+            track.appendChild(preview);
+            const top = ((startMin - visibleHourStart*60)/60) * HOUR_HEIGHT;
+            const h = Math.max(8, ((endMin - startMin)/60) * HOUR_HEIGHT);
+            preview.style.top = `${top}px`;
+            preview.style.height = `${h}px`;
+            resizeState = { event: src, day, track, edge, startMin, endMin, preview };
             setStatus('Resizing… release to save');
             return;
           }
@@ -919,6 +926,12 @@ window.addEventListener('mousemove', (ev) => {
     const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-track') || resizeState.track;
     const dayIdx = Number(target.dataset.day);
     const m = minuteFromPointer(target, ev.clientY);
+
+    if (resizeState.preview?.parentElement !== target) {
+      resizeState.preview?.remove();
+      target.appendChild(resizeState.preview);
+    }
+
     resizeState.track = target;
     resizeState.day = dayIdx;
     if (resizeState.edge === 'top') {
@@ -926,6 +939,11 @@ window.addEventListener('mousemove', (ev) => {
     } else {
       resizeState.endMin = Math.max(m, resizeState.startMin + 15);
     }
+
+    const top = ((resizeState.startMin - visibleHourStart*60)/60) * HOUR_HEIGHT;
+    const h = Math.max(8, ((resizeState.endMin - resizeState.startMin)/60) * HOUR_HEIGHT);
+    resizeState.preview.style.top = `${top}px`;
+    resizeState.preview.style.height = `${h}px`;
     return;
   }
 
@@ -976,6 +994,7 @@ window.addEventListener('mouseup', async () => {
     const snap = resizeState;
     resizeState = null;
     try {
+      if (snap.preview?.isConnected) snap.preview.remove();
       const payload = {
         summary: snap.event.summary || '(no title)',
         description: snap.event.description || '',
@@ -994,6 +1013,7 @@ window.addEventListener('mouseup', async () => {
       suppressNextOpenUntil = Date.now() + 700;
       return;
     } catch (e) {
+      if (snap.preview?.isConnected) snap.preview.remove();
       hideLoading();
       alert(e.message || 'Resize failed');
       await loadWeek();
