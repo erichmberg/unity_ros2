@@ -408,3 +408,91 @@ async def agent_move_event(request: Request):
         },
     ).execute()
     return {"ok": True, "id": updated.get("id")}
+
+
+@app.post("/api/agent/add-buffers")
+async def agent_add_buffers(request: Request):
+    """
+    Add prep/travel buffer events around an existing event.
+
+    Body example:
+    {
+      "calendarId": "eric.hm.berg@gmail.com",
+      "eventId": "abc123",
+      "prepMin": 15,
+      "travelBeforeMin": 20,
+      "travelAfterMin": 0,
+      "timeZone": "Europe/Stockholm",
+      "createPrep": true,
+      "createTravelBefore": true,
+      "createTravelAfter": false
+    }
+    """
+    body = await request.json()
+    calendar_id = body["calendarId"]
+    event_id = body["eventId"]
+    tz_name = body.get("timeZone", "Europe/Stockholm")
+
+    prep_min = int(body.get("prepMin", 0))
+    travel_before_min = int(body.get("travelBeforeMin", 0))
+    travel_after_min = int(body.get("travelAfterMin", 0))
+
+    create_prep = bool(body.get("createPrep", prep_min > 0))
+    create_travel_before = bool(body.get("createTravelBefore", travel_before_min > 0))
+    create_travel_after = bool(body.get("createTravelAfter", travel_after_min > 0))
+
+    creds = get_google_creds()
+    svc = build("calendar", "v3", credentials=creds)
+
+    src = svc.events().get(calendarId=calendar_id, eventId=event_id).execute()
+    start_raw = src.get("start", {}).get("dateTime")
+    end_raw = src.get("end", {}).get("dateTime")
+    if not start_raw or not end_raw:
+        raise HTTPException(status_code=400, detail="Buffers only supported for timed events (not all-day).")
+
+    src_start = datetime.fromisoformat(start_raw.replace("Z", "+00:00"))
+    src_end = datetime.fromisoformat(end_raw.replace("Z", "+00:00"))
+
+    title = src.get("summary", "Event")
+    created = []
+
+    if create_prep and prep_min > 0:
+        s = src_start - timedelta(minutes=prep_min)
+        e = src_start
+        ev = _create_event(
+            calendar_id,
+            f"Prep: {title}",
+            f"Prep buffer before: {title}",
+            s.isoformat(),
+            e.isoformat(),
+            tz_name,
+        )
+        created.append({"kind": "prep", "id": ev.get("id"), "htmlLink": ev.get("htmlLink")})
+
+    if create_travel_before and travel_before_min > 0:
+        s = src_start - timedelta(minutes=travel_before_min)
+        e = src_start
+        ev = _create_event(
+            calendar_id,
+            f"Travel: {title}",
+            f"Travel buffer before: {title}",
+            s.isoformat(),
+            e.isoformat(),
+            tz_name,
+        )
+        created.append({"kind": "travel_before", "id": ev.get("id"), "htmlLink": ev.get("htmlLink")})
+
+    if create_travel_after and travel_after_min > 0:
+        s = src_end
+        e = src_end + timedelta(minutes=travel_after_min)
+        ev = _create_event(
+            calendar_id,
+            f"Travel after: {title}",
+            f"Travel buffer after: {title}",
+            s.isoformat(),
+            e.isoformat(),
+            tz_name,
+        )
+        created.append({"kind": "travel_after", "id": ev.get("id"), "htmlLink": ev.get("htmlLink")})
+
+    return {"ok": True, "sourceEventId": event_id, "created": created, "count": len(created)}
