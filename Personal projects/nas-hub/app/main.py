@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -46,6 +46,14 @@ class ThesisLog(Base):
     hours: Mapped[float] = mapped_column(Float)
     summary: Mapped[str] = mapped_column(String(255))
     details: Mapped[str] = mapped_column(Text, default="")
+
+
+class ThesisLogHistory(Base):
+    __tablename__ = "thesis_log_history"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    action: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[str] = mapped_column(Text)
 
 
 engine = create_engine(DATABASE_URL, future=True)
@@ -327,7 +335,10 @@ def add_thesis_log(
         combined_details = f"{combined_details}\n\n{meta_blob}".strip()
 
     with Session(engine) as db:
-        db.add(ThesisLog(started_at=dt, hours=hours, summary=summary, details=combined_details))
+        row = ThesisLog(started_at=dt, hours=hours, summary=summary, details=combined_details)
+        db.add(row)
+        db.flush()
+        _record_history(db, "create", {"after": _log_to_dict(row)})
         db.commit()
     return RedirectResponse(url="/", status_code=303)
 
@@ -363,6 +374,20 @@ def _compose_details(base: str, meta: dict) -> str:
     return ((base or "").strip() + "\n\n[meta]\n" + "\n".join(lines)).strip()
 
 
+def _log_to_dict(row: ThesisLog) -> dict:
+    return {
+        "id": row.id,
+        "started_at": row.started_at.isoformat() if row.started_at else None,
+        "hours": float(row.hours or 0),
+        "summary": row.summary or "",
+        "details": row.details or "",
+    }
+
+
+def _record_history(db: Session, action: str, payload: dict):
+    db.add(ThesisLogHistory(created_at=datetime.utcnow(), action=action, payload=json.dumps(payload, ensure_ascii=False)))
+
+
 @app.get("/api/thesis-logs")
 def thesis_logs(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
@@ -394,7 +419,9 @@ def delete_thesis_log(log_id: int):
         row = db.get(ThesisLog, log_id)
         if not row:
             raise HTTPException(status_code=404, detail="Thesis log not found")
+        before = _log_to_dict(row)
         db.delete(row)
+        _record_history(db, "delete", {"before": before})
         db.commit()
     return {"ok": True, "id": log_id}
 
@@ -424,6 +451,8 @@ async def update_thesis_log(log_id: int, request: Request):
         if not row:
             raise HTTPException(status_code=404, detail="Thesis log not found")
 
+        before = _log_to_dict(row)
+
         row.started_at = datetime.fromisoformat(body.get("startedAt", row.started_at.isoformat()))
         row.hours = float(body.get("hours", row.hours))
         row.summary = body.get("summary", row.summary)
@@ -438,6 +467,8 @@ async def update_thesis_log(log_id: int, request: Request):
         meta["next_action"] = body.get("nextAction", "")
 
         row.details = _compose_details(body.get("details", _base_details(row.details or "")), meta)
+        db.flush()
+        _record_history(db, "update", {"before": before, "after": _log_to_dict(row)})
         db.commit()
 
     return {"ok": True, "id": log_id}
@@ -461,6 +492,90 @@ async def update_thesis_log_categories(log_id: int, request: Request):
         db.commit()
 
     return {"ok": True, "id": log_id, "categoryTags": tags}
+
+
+@app.post("/api/thesis-undo-last")
+def thesis_undo_last():
+    with Session(engine) as db:
+        h = db.scalars(select(ThesisLogHistory).order_by(ThesisLogHistory.id.desc()).limit(1)).first()
+        if not h:
+            raise HTTPException(status_code=404, detail="No thesis history to undo")
+        payload = json.loads(h.payload or "{}")
+
+        if h.action == "create":
+            after = payload.get("after") or {}
+            rid = after.get("id")
+            row = db.get(ThesisLog, rid) if rid else None
+            if row:
+                db.delete(row)
+        elif h.action == "delete":
+            before = payload.get("before") or {}
+            row = ThesisLog(
+                id=before.get("id"),
+                started_at=datetime.fromisoformat(before["started_at"]),
+                hours=float(before.get("hours", 0)),
+                summary=before.get("summary", ""),
+                details=before.get("details", ""),
+            )
+            db.merge(row)
+        elif h.action == "update":
+            before = payload.get("before") or {}
+            row = db.get(ThesisLog, before.get("id"))
+            if row:
+                row.started_at = datetime.fromisoformat(before["started_at"])
+                row.hours = float(before.get("hours", 0))
+                row.summary = before.get("summary", "")
+                row.details = before.get("details", "")
+
+        db.delete(h)
+        db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/thesis-export.csv")
+def thesis_export_csv(days: int = 0):
+    with Session(engine) as db:
+        if days and days > 0:
+            cutoff = datetime.now() - timedelta(days=days)
+            logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff).order_by(ThesisLog.started_at.asc())).all()
+        else:
+            logs = db.scalars(select(ThesisLog).order_by(ThesisLog.started_at.asc())).all()
+
+    lines = ["id,started_at,hours,summary,task_type,category_tags,details"]
+    for l in logs:
+        meta = _extract_meta(l.details or "")
+        vals = [
+            str(l.id),
+            l.started_at.isoformat(),
+            str(float(l.hours or 0)),
+            (l.summary or "").replace('"', '""'),
+            (meta.get("task_type", "") or "").replace('"', '""'),
+            (meta.get("category_tags", "") or "").replace('"', '""'),
+            _base_details(l.details or "").replace('"', '""').replace("\n", " "),
+        ]
+        lines.append(",".join([f'\"{v}\"' for v in vals]))
+
+    csv_data = "\n".join(lines)
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=thesis_logs.csv"},
+    )
+
+
+@app.get("/api/thesis-insights")
+def thesis_insights(target_weekly_hours: float = 20.0):
+    now = datetime.now()
+    start = now - timedelta(days=7)
+    with Session(engine) as db:
+        logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= start)).all()
+    hours = float(sum(l.hours for l in logs))
+    delta = round(hours - float(target_weekly_hours), 2)
+    if delta >= 0:
+        message = f"On track ✅ You are {delta}h above your 7-day target ({target_weekly_hours}h)."
+    else:
+        message = f"Behind target by {abs(delta)}h in the last 7 days. Want me to schedule a catch-up block?"
+    return {"hours7d": round(hours,2), "targetWeeklyHours": target_weekly_hours, "delta": delta, "message": message}
 
 
 @app.get("/api/thesis-summary")

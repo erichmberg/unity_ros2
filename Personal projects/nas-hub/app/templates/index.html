@@ -271,6 +271,16 @@
     .thesis-list-box b { color:#e6e6e6; }
     .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#cfcfcf; }
 
+    body[data-theme="light"] .thesis-metric { border-color:#d8d8d8; background:#ffffff; }
+    body[data-theme="light"] .thesis-metric .k { color:#666; }
+    body[data-theme="light"] .thesis-metric .v { color:#111; }
+    body[data-theme="light"] .thesis-list-box { border-color:#d8d8d8; background:#ffffff; }
+    body[data-theme="light"] .thesis-list-box b,
+    body[data-theme="light"] .thesis-list-box ul { color:#222; }
+    body[data-theme="light"] #thesisScheduleWindow { background:#fff5f5 !important; border-color:#d99 !important; }
+    body[data-theme="light"] .thesis-hour-rail { border-right-color:#d3a0a0; color:#7a5050; }
+    body[data-theme="light"] .thesis-day-track { border-color:#d99; background: repeating-linear-gradient(to bottom, rgba(200,80,80,0.15) 0, rgba(200,80,80,0.15) 1px, transparent 1px, transparent var(--thesis-hour-h)); }
+
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
       align-items: center; justify-content: center; z-index: 50;
@@ -485,15 +495,18 @@
       </div>
       <div class="card">
         <h2>Thesis summary</h2>
-        <div class="btn-row" style="align-items:center; gap:8px;">
+        <div class="btn-row" style="align-items:center; gap:8px; flex-wrap:wrap;">
           <button type="button" onclick="shiftThesisWindow(-7)">← Prev week</button>
           <button type="button" onclick="shiftThesisWindow(7)">Next week →</button>
+          <button type="button" onclick="undoLastThesisAction()">Undo last</button>
+          <button type="button" onclick="exportThesisCsv()">Export CSV</button>
           <label for="thesisRangeDays" style="margin:0 0 0 8px; font-size:12px; opacity:.9;">Range</label>
           <select id="thesisRangeDays" onchange="loadThesisSummary(Number(this.value))" style="max-width:180px;">
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
           </select>
         </div>
+        <div id="thesisInsight" class="thesis-list-box" style="margin-top:10px;"></div>
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
         <div id="thesisSummary" style="margin-top:10px;"></div>
       </div>
@@ -1452,12 +1465,14 @@ async function loadThesisSummary(days){
   start.setDate(start.getDate() - (Number(days)-1));
   start.setHours(0,0,0,0);
 
-  const [sr, lr] = await Promise.all([
+  const [sr, lr, ir] = await Promise.all([
     fetch(`/api/thesis-summary?days=${days}`),
     fetch(`/api/thesis-logs?days=3650`),
+    fetch(`/api/thesis-insights?target_weekly_hours=20`),
   ]);
   const summary = await sr.json();
   const logsData = await lr.json();
+  const insight = await ir.json();
 
   const esc = (s='') => String(s)
     .replaceAll('&','&amp;')
@@ -1488,6 +1503,9 @@ async function loadThesisSummary(days){
     `<div class="thesis-list-box"><b>Outcomes</b><ul>${outcomes}</ul></div>`+
     `<div class="thesis-list-box"><b>Blockers</b><ul>${blockers}</ul></div>`+
     `<div class="thesis-list-box"><b>Next actions</b><ul>${nextActions}</ul></div>`;
+
+  const insightEl = document.getElementById('thesisInsight');
+  if (insightEl) insightEl.innerHTML = `<b>Weekly status</b><div style="margin-top:4px;">${esc(insight.message || '')}</div>`;
 
   const wrap = document.getElementById('thesisScheduleWindow');
   const allLogs = logsData.items || [];
@@ -1592,6 +1610,20 @@ function shiftThesisWindow(deltaDays){
   thesisViewEndDate.setDate(thesisViewEndDate.getDate() + deltaDays);
   const days = Number(document.getElementById('thesisRangeDays')?.value || 7);
   loadThesisSummary(days);
+}
+
+async function undoLastThesisAction(){
+  if (!confirm('Undo last thesis change?')) return;
+  showLoading('Undoing…');
+  const r = await fetch('/api/thesis-undo-last', { method:'POST' });
+  if (!r.ok) { hideLoading(); alert('Nothing to undo (or undo failed).'); return; }
+  await loadThesisSummary(Number(document.getElementById('thesisRangeDays')?.value || 7));
+  hideLoading();
+}
+
+function exportThesisCsv(){
+  const days = Number(document.getElementById('thesisRangeDays')?.value || 0);
+  window.open(`/api/thesis-export.csv?days=${days}`, '_blank');
 }
 
 function toDateTimeLocal(dtRaw){
