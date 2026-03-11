@@ -191,6 +191,23 @@
     }
     .event-title { font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow-wrap: anywhere; word-break: break-word; }
     .event-meta { font-size: 11px; color: rgba(255,255,255,.92); margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+    .deadline-chip {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      z-index: 35;
+      border: 1px solid rgba(255,120,120,.6);
+      background: linear-gradient(180deg, rgba(170,25,25,.95), rgba(120,15,15,.95));
+      color: #fff;
+      border-radius: 8px;
+      padding: 3px 6px;
+      font-size: 11px;
+      line-height: 1.2;
+      box-shadow: 0 4px 10px rgba(0,0,0,.28);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
 
     .pill { display:inline-block; margin:3px 6px 0 0; padding:3px 8px; border-radius:999px; background:#141519; border:1px solid #34363e; font-size:12px; }
 
@@ -338,6 +355,11 @@
     }
     body[data-theme="light"] .event-title,
     body[data-theme="light"] .event-meta { color:#111827; text-shadow:none; }
+    body[data-theme="light"] .deadline-chip {
+      border-color:#d27979;
+      background: linear-gradient(180deg, #e26d6d, #cb4f4f);
+      color:#fff;
+    }
 
     /* Deadline tab: keep neutral cards; only deadline entries (right column list) are color-accented inline. */
   </style>
@@ -1001,20 +1023,40 @@ function layoutDayEvents(dayEvents){
 
 function renderWeekEvents(events){
   const tracks = Array.from(document.querySelectorAll('.day-track'));
-  tracks.forEach(t=>t.querySelectorAll('.event-seg').forEach(e=>e.remove()));
+  tracks.forEach(t=>{
+    t.querySelectorAll('.event-seg').forEach(e=>e.remove());
+    t.querySelectorAll('.deadline-chip').forEach(e=>e.remove());
+  });
 
   const byDay = Array.from({length:7}, ()=>[]);
+  const deadlineByDay = Array.from({length:7}, ()=>[]);
   for(const e of events){
     const raw=e.start?.dateTime || e.start?.date;
     if(!raw) continue;
     const d=new Date(raw);
     const idx=(d.getDay()+6)%7; // monday=0
-    byDay[idx].push(e);
+    const isDeadline = (e.summary || '').toLowerCase().startsWith('deadline:');
+    if (isDeadline) deadlineByDay[idx].push(e);
+    else byDay[idx].push(e);
   }
 
   for(let day=0; day<7; day++){
-    const segs = layoutDayEvents(byDay[day]);
     const track = tracks[day];
+
+    // Render deadline chips at top of day (always visible even if short events).
+    const dls = deadlineByDay[day].sort((a,b)=> new Date(a.start?.dateTime||0) - new Date(b.start?.dateTime||0));
+    dls.forEach((ev, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'deadline-chip';
+      chip.style.top = `${6 + i*24}px`;
+      const when = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+      chip.textContent = `${when ? when + ' · ' : ''}${ev.summary || 'Deadline'}`;
+      chip.title = `${ev.summary || 'Deadline'}${when ? ` (${when})` : ''}`;
+      chip.onclick = () => openEventModal(ev);
+      track.appendChild(chip);
+    });
+
+    const segs = layoutDayEvents(byDay[day]);
     for(const s of segs){
       const top=((s.startMin - visibleHourStart*60)/60)*HOUR_HEIGHT;
       const height=Math.max(16, ((s.endMin-s.startMin)/60)*HOUR_HEIGHT - 2);
