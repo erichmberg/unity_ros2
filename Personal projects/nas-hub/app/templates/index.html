@@ -458,7 +458,7 @@
           <label>Summary</label>
           <input type="text" name="summary" required>
 
-          <label>Task type</label>
+          <label>Task type (primary)</label>
           <select name="task_type">
             <option value="">(optional)</option>
             <option value="coding">Coding</option>
@@ -468,6 +468,8 @@
             <option value="meeting">Meeting</option>
             <option value="planning">Planning</option>
           </select>
+          <label>Extra categories (comma separated)</label>
+          <input type="text" name="category_tags" placeholder="coding,meeting,planning">
           <label>Outcome</label>
           <input type="text" name="outcome" placeholder="What moved forward?">
           <label>Blocker</label>

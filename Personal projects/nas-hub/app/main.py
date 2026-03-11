@@ -298,6 +298,7 @@ def add_thesis_log(
     details: str = Form(""),
     course: str = Form(""),
     task_type: str = Form(""),
+    category_tags: str = Form(""),
     outcome: str = Form(""),
     blocker: str = Form(""),
     next_action: str = Form(""),
@@ -309,6 +310,10 @@ def add_thesis_log(
         meta_lines.append(f"course={course.strip()}")
     if task_type.strip():
         meta_lines.append(f"task_type={task_type.strip()}")
+    if category_tags.strip():
+        tags = [t.strip() for t in category_tags.split(",") if t.strip()]
+        if tags:
+            meta_lines.append(f"category_tags={','.join(tags)}")
     if outcome.strip():
         meta_lines.append(f"outcome={outcome.strip()}")
     if blocker.strip():
@@ -353,12 +358,14 @@ def thesis_logs(days: int = 7):
     items = []
     for l in logs:
         meta = _extract_meta(l.details or "")
+        tags = [t.strip() for t in (meta.get("category_tags", "") or "").split(",") if t.strip()]
         items.append({
             "id": l.id,
             "startedAt": l.started_at.isoformat(),
             "hours": float(l.hours),
             "summary": l.summary,
-            "taskType": meta.get("task_type", "uncategorized"),
+            "taskType": meta.get("task_type", tags[0] if tags else "uncategorized"),
+            "categoryTags": tags,
         })
     return {"days": days, "items": items}
 
@@ -391,6 +398,28 @@ def delete_thesis_logs_by_summary(summary: str):
     return {"ok": True, "deleted": deleted, "summary": summary}
 
 
+@app.put("/api/thesis-logs/{log_id}/categories")
+async def update_thesis_log_categories(log_id: int, request: Request):
+    body = await request.json()
+    tags = [t.strip() for t in (body.get("categoryTags", []) or []) if str(t).strip()]
+
+    with Session(engine) as db:
+        row = db.get(ThesisLog, log_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Thesis log not found")
+
+        details = row.details or ""
+        meta = _extract_meta(details)
+        meta["category_tags"] = ",".join(tags)
+
+        base = details.split("[meta]", 1)[0].strip() if "[meta]" in details else details.strip()
+        lines = [f"{k}={v}" for k, v in meta.items() if str(v).strip()]
+        row.details = (base + "\n\n[meta]\n" + "\n".join(lines)).strip()
+        db.commit()
+
+    return {"ok": True, "id": log_id, "categoryTags": tags}
+
+
 @app.get("/api/thesis-summary")
 def thesis_summary(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
@@ -407,8 +436,14 @@ def thesis_summary(days: int = 7):
     for l in logs:
         meta = _extract_meta(l.details or "")
 
-        tt = meta.get("task_type", "uncategorized")
-        by_task_type[tt] = round(by_task_type.get(tt, 0.0) + float(l.hours), 2)
+        tags = [t.strip() for t in (meta.get("category_tags", "") or "").split(",") if t.strip()]
+        if tags:
+            share = float(l.hours) / len(tags)
+            for t in tags:
+                by_task_type[t] = round(by_task_type.get(t, 0.0) + share, 2)
+        else:
+            tt = meta.get("task_type", "uncategorized")
+            by_task_type[tt] = round(by_task_type.get(tt, 0.0) + float(l.hours), 2)
 
         if meta.get("outcome"):
             outcomes.append(meta["outcome"])
