@@ -168,6 +168,18 @@ def calendars(include_holidays: bool = False):
         cid = c["id"]
         if not include_holidays and cid == "sv.swedish#holiday@group.v.calendar.google.com":
             continue
+        # Ensure returned calendars are actually readable; skip inaccessible ones.
+        try:
+            svc.events().list(
+                calendarId=cid,
+                singleEvents=True,
+                orderBy="startTime",
+                timeMin=datetime.utcnow().isoformat() + "Z",
+                timeMax=(datetime.utcnow() + timedelta(days=1)).isoformat() + "Z",
+                maxResults=1,
+            ).execute()
+        except Exception:
+            continue
         items.append({"id": cid, "summary": c.get("summary", cid)})
     return {"items": items}
 
