@@ -756,6 +756,11 @@ function closeModal(){
   hideHoverTip();
 }
 
+function closeAnyModal(){
+  closeModal();
+  closeCreateModal();
+}
+
 function showHoverTip(ev, item){
   const tip = document.getElementById('hoverTip');
   const desc = (item.description || '').trim();
@@ -1029,6 +1034,22 @@ function initTheme(){
     applyTheme(cur === 'dark' ? 'light' : 'dark');
   });
 }
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') {
+    closeAnyModal();
+  }
+  if (ev.key === 'Enter') {
+    const createOpen = document.getElementById('createModalBackdrop').style.display === 'flex';
+    if (createOpen) {
+      const tag = (ev.target?.tagName || '').toLowerCase();
+      if (tag !== 'textarea') {
+        ev.preventDefault();
+        saveCreateModalEvent();
+      }
+    }
+  }
+});
 
 initTheme();
 switchTab('calendar');
