@@ -127,7 +127,6 @@
     }
     .resize-handle {
       position: absolute;
-      left: 50%; transform: translateX(-50%);
       width: 16px; height: 16px; border-radius: 50%;
       background: rgba(255,255,255,.92);
       border: 1px solid rgba(0,0,0,.35);
@@ -135,9 +134,11 @@
       transition: opacity .12s ease;
       cursor: ns-resize;
       z-index: 3;
+      pointer-events: auto;
     }
-    .resize-handle.top { top: -4px; }
-    .resize-handle.bottom { bottom: -4px; }
+    /* Outside corners: top-left and bottom-right */
+    .resize-handle.top { top: -10px; left: -10px; }
+    .resize-handle.bottom { bottom: -10px; right: -10px; }
     .event-seg:hover .resize-handle { opacity: 1; }
     .drag-create {
       position: absolute;
