@@ -291,10 +291,38 @@ def delete_event(calendar_id: str, event_id: str, applySeries: bool = False, ser
 
 
 @app.post("/api/thesis-log")
-def add_thesis_log(started_at: str = Form(...), hours: float = Form(...), summary: str = Form(...), details: str = Form("")):
+def add_thesis_log(
+    started_at: str = Form(...),
+    hours: float = Form(...),
+    summary: str = Form(...),
+    details: str = Form(""),
+    course: str = Form(""),
+    task_type: str = Form(""),
+    outcome: str = Form(""),
+    blocker: str = Form(""),
+    next_action: str = Form(""),
+):
     dt = datetime.fromisoformat(started_at)
+
+    meta_lines = []
+    if course.strip():
+        meta_lines.append(f"course={course.strip()}")
+    if task_type.strip():
+        meta_lines.append(f"task_type={task_type.strip()}")
+    if outcome.strip():
+        meta_lines.append(f"outcome={outcome.strip()}")
+    if blocker.strip():
+        meta_lines.append(f"blocker={blocker.strip()}")
+    if next_action.strip():
+        meta_lines.append(f"next_action={next_action.strip()}")
+
+    combined_details = (details or "").strip()
+    if meta_lines:
+        meta_blob = "\n".join(["[meta]"] + meta_lines)
+        combined_details = f"{combined_details}\n\n{meta_blob}".strip()
+
     with Session(engine) as db:
-        db.add(ThesisLog(started_at=dt, hours=hours, summary=summary, details=details))
+        db.add(ThesisLog(started_at=dt, hours=hours, summary=summary, details=combined_details))
         db.commit()
     return RedirectResponse(url="/", status_code=303)
 
@@ -304,8 +332,50 @@ def thesis_summary(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
     with Session(engine) as db:
         logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff)).all()
+
     total = round(sum(l.hours for l in logs), 2)
-    return {"days": days, "entries": len(logs), "hours": total}
+
+    by_task_type = {}
+    outcomes = []
+    blockers = []
+    next_actions = []
+
+    for l in logs:
+        meta = {}
+        txt = l.details or ""
+        if "[meta]" in txt:
+            try:
+                section = txt.split("[meta]", 1)[1]
+                for line in section.splitlines():
+                    line = line.strip()
+                    if not line or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    meta[k.strip()] = v.strip()
+            except Exception:
+                pass
+
+        tt = meta.get("task_type", "uncategorized")
+        by_task_type[tt] = round(by_task_type.get(tt, 0.0) + float(l.hours), 2)
+
+        if meta.get("outcome"):
+            outcomes.append(meta["outcome"])
+        if meta.get("blocker"):
+            blockers.append(meta["blocker"])
+        if meta.get("next_action"):
+            next_actions.append(meta["next_action"])
+
+    return {
+        "days": days,
+        "entries": len(logs),
+        "hours": total,
+        "hoursByTaskType": by_task_type,
+        "weeklyHighlights": {
+            "outcomes": outcomes[-5:],
+            "blockers": blockers[-5:],
+            "nextActions": next_actions[-5:],
+        },
+    }
 
 
 # -------------------------
