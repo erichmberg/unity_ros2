@@ -1035,8 +1035,9 @@ function renderWeekEvents(events){
     if(!raw) continue;
     const d=new Date(raw);
     const idx=(d.getDay()+6)%7; // monday=0
-    const isDeadline = (e.summary || '').toLowerCase().startsWith('deadline:');
-    if (isDeadline) deadlineByDay[idx].push(e);
+    const summaryLc = (e.summary || '').toLowerCase();
+    const isDeadlineLike = summaryLc.startsWith('deadline:') || summaryLc.startsWith('done by:');
+    if (isDeadlineLike) deadlineByDay[idx].push(e);
     else byDay[idx].push(e);
   }
 
