@@ -706,6 +706,8 @@ function renderWeekEvents(events){
 
           const handle = ev.target.closest('.resize-handle');
           if (handle) {
+            suppressNextOpen = true;
+            suppressNextOpenUntil = Date.now() + 900;
             const edge = handle.dataset.edge;
             const startDt = src.start?.dateTime ? new Date(src.start.dateTime) : null;
             const endDt = src.end?.dateTime ? new Date(src.end.dateTime) : null;
@@ -1011,7 +1013,8 @@ window.addEventListener('mouseup', async () => {
       if (!r.ok) throw new Error(j.detail || 'Resize failed');
       await loadWeek();
       hideLoading();
-      suppressNextOpenUntil = Date.now() + 700;
+      suppressNextOpen = true;
+      suppressNextOpenUntil = Date.now() + 900;
       return;
     } catch (e) {
       if (snap.preview?.isConnected) snap.preview.remove();
