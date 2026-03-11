@@ -263,12 +263,12 @@
     }
     .thesis-day-track {
       position: relative;
-      border: 1px solid #7a1111;
+      border: 1px solid #3a3a3a;
       border-radius: 8px;
       background: repeating-linear-gradient(
         to bottom,
-        rgba(255, 86, 86, 0.15) 0,
-        rgba(255, 86, 86, 0.15) 1px,
+        rgba(255, 255, 255, 0.08) 0,
+        rgba(255, 255, 255, 0.08) 1px,
         transparent 1px,
         transparent var(--thesis-hour-h)
       );
@@ -279,8 +279,8 @@
       left: 6px;
       right: 6px;
       border-radius: 8px;
-      border: 1px solid #d64a4a;
-      background: linear-gradient(180deg, #b21f1f 0%, #7f1010 70%, #5a0b0b 100%);
+      border: 1px solid #3f8a52;
+      background: linear-gradient(180deg, #3fa45c 0%, #2f7f45 70%, #265f36 100%);
       color: #fff;
       padding: 4px 6px;
       font-size: 12px;
@@ -289,25 +289,25 @@
     }
 
     .thesis-summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
-    .thesis-metric { border:1px solid #2f4a35; background:#111813; border-radius:8px; padding:8px; }
-    .thesis-metric .k { font-size:11px; color:#a9c8b0; }
-    .thesis-metric .v { font-size:18px; font-weight:800; color:#ddf5e3; margin-top:2px; }
-    .thesis-list-box { margin-top:8px; border:1px solid #31503a; background:#121a14; border-radius:8px; padding:8px; }
-    .thesis-list-box b { color:#d8f0de; }
-    .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#c6e3cc; }
+    .thesis-metric { border:1px solid #343434; background:#141414; border-radius:8px; padding:8px; }
+    .thesis-metric .k { font-size:11px; color:#b5b5b5; }
+    .thesis-metric .v { font-size:18px; font-weight:800; color:#f1f1f1; margin-top:2px; }
+    .thesis-list-box { margin-top:8px; border:1px solid #343434; background:#121212; border-radius:8px; padding:8px; }
+    .thesis-list-box b { color:#e6e6e6; }
+    .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#cfcfcf; }
     #thesisSummary { max-height: none; overflow: visible; }
 
-    body[data-theme="light"] .thesis-metric { border-color:#b8d7c0; background:#f6fff7; }
-    body[data-theme="light"] .thesis-metric .k { color:#4f7a58; }
-    body[data-theme="light"] .thesis-metric .v { color:#1f4f2a; }
-    body[data-theme="light"] .thesis-list-box { border-color:#b8d7c0; background:#f8fff9; }
+    body[data-theme="light"] .thesis-metric { border-color:#d8d8d8; background:#ffffff; }
+    body[data-theme="light"] .thesis-metric .k { color:#666; }
+    body[data-theme="light"] .thesis-metric .v { color:#111; }
+    body[data-theme="light"] .thesis-list-box { border-color:#d8d8d8; background:#ffffff; }
     body[data-theme="light"] .thesis-list-box b,
-    body[data-theme="light"] .thesis-list-box ul { color:#274430; }
-    body[data-theme="light"] #thesisScheduleWindow { background:#fff7f7 !important; border-color:#d9aaaa !important; }
-    body[data-theme="light"] .thesis-hour-rail { border-right-color:#d3a0a0; color:#7a5050; }
-    body[data-theme="light"] .thesis-day-track { border-color:#d9b0b0; background: repeating-linear-gradient(to bottom, rgba(200,80,80,0.10) 0, rgba(200,80,80,0.10) 1px, transparent 1px, transparent var(--thesis-hour-h)); }
-    body[data-theme="light"] .thesis-week-header-cell { background:#ffe9e9; border-color:#d7a4a4; color:#5e1f1f; }
-    body[data-theme="light"] .thesis-event-block { background: linear-gradient(180deg, #d74a4a 0%, #ba2f2f 70%, #982424 100%); border-color:#b23636; color:#fff; }
+    body[data-theme="light"] .thesis-list-box ul { color:#222; }
+    body[data-theme="light"] #thesisScheduleWindow { background:#f7f9f7 !important; border-color:#c9d3c9 !important; }
+    body[data-theme="light"] .thesis-hour-rail { border-right-color:#c5ccc5; color:#5d655d; }
+    body[data-theme="light"] .thesis-day-track { border-color:#ccd4cc; background: repeating-linear-gradient(to bottom, rgba(120,130,120,0.10) 0, rgba(120,130,120,0.10) 1px, transparent 1px, transparent var(--thesis-hour-h)); }
+    body[data-theme="light"] .thesis-week-header-cell { background:#f1f5f1; border-color:#cfd7cf; color:#2c3a2f; }
+    body[data-theme="light"] .thesis-event-block { background: linear-gradient(180deg, #56b873 0%, #3f9658 70%, #2f7744 100%); border-color:#3f8a52; color:#fff; }
 
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
