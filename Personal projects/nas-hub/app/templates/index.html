@@ -383,8 +383,6 @@
           <label>Summary</label>
           <input type="text" name="summary" required>
 
-          <label>Course / Project</label>
-          <input type="text" name="course" placeholder="e.g. Kandidatarbete CoBot">
           <label>Task type</label>
           <select name="task_type">
             <option value="">(optional)</option>
@@ -413,7 +411,8 @@
           <button onclick="loadThesisSummary(7)">Last 7 days</button>
           <button onclick="loadThesisSummary(30)">Last 30 days</button>
         </div>
-        <pre id="thesisSummary">Click a button to load summary.</pre>
+        <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
+        <pre id="thesisSummary" style="margin-top:10px;">Click a button to load summary.</pre>
       </div>
     </div>
   </div>
@@ -1318,9 +1317,43 @@ function updateNowIndicator(){
 }
 
 async function loadThesisSummary(days){
-  const r=await fetch(`/api/thesis-summary?days=${days}`);
-  const j=await r.json();
-  document.getElementById('thesisSummary').textContent = JSON.stringify(j,null,2);
+  const [sr, lr] = await Promise.all([
+    fetch(`/api/thesis-summary?days=${days}`),
+    fetch(`/api/thesis-logs?days=${days}`),
+  ]);
+  const summary = await sr.json();
+  const logsData = await lr.json();
+  document.getElementById('thesisSummary').textContent = JSON.stringify(summary,null,2);
+
+  const wrap = document.getElementById('thesisScheduleWindow');
+  const logs = logsData.items || [];
+  if (!logs.length) {
+    wrap.innerHTML = '<div style="color:#d8a8a8;">No thesis logs in this range.</div>';
+    return;
+  }
+
+  const byDay = new Map();
+  for (const l of logs) {
+    const d = new Date(l.startedAt);
+    const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push(l);
+  }
+
+  let html = '';
+  for (const [day, items] of byDay.entries()) {
+    html += `<div style="margin-bottom:10px;"><div style="font-weight:700; color:#ffb3b3; margin-bottom:6px;">${day}</div>`;
+    html += '<div style="display:flex; gap:8px; flex-wrap:wrap;">';
+    for (const it of items) {
+      const w = Math.max(90, Math.round(it.hours * 90));
+      html += `<div title="${it.summary}" style="background:linear-gradient(180deg,#9e1c1c,#5e0e0e); color:#fff; border:1px solid #c43a3a; border-radius:8px; padding:8px; min-height:52px; width:${w}px; box-shadow:0 2px 8px rgba(0,0,0,.35);">`+
+              `<div style="font-weight:700; font-size:12px; overflow-wrap:anywhere;">${it.summary}</div>`+
+              `<div style="font-size:11px; opacity:.9; margin-top:4px;">${it.hours}h · ${it.taskType || 'uncategorized'}</div>`+
+              `</div>`;
+    }
+    html += '</div></div>';
+  }
+  wrap.innerHTML = html;
 }
 
 function applyTheme(theme){

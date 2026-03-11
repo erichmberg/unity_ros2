@@ -327,6 +327,42 @@ def add_thesis_log(
     return RedirectResponse(url="/", status_code=303)
 
 
+def _extract_meta(details: str) -> dict:
+    meta = {}
+    txt = details or ""
+    if "[meta]" in txt:
+        try:
+            section = txt.split("[meta]", 1)[1]
+            for line in section.splitlines():
+                line = line.strip()
+                if not line or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                meta[k.strip()] = v.strip()
+        except Exception:
+            pass
+    return meta
+
+
+@app.get("/api/thesis-logs")
+def thesis_logs(days: int = 7):
+    cutoff = datetime.now() - timedelta(days=days)
+    with Session(engine) as db:
+        logs = db.scalars(select(ThesisLog).where(ThesisLog.started_at >= cutoff).order_by(ThesisLog.started_at.asc())).all()
+
+    items = []
+    for l in logs:
+        meta = _extract_meta(l.details or "")
+        items.append({
+            "id": l.id,
+            "startedAt": l.started_at.isoformat(),
+            "hours": float(l.hours),
+            "summary": l.summary,
+            "taskType": meta.get("task_type", "uncategorized"),
+        })
+    return {"days": days, "items": items}
+
+
 @app.get("/api/thesis-summary")
 def thesis_summary(days: int = 7):
     cutoff = datetime.now() - timedelta(days=days)
@@ -341,19 +377,7 @@ def thesis_summary(days: int = 7):
     next_actions = []
 
     for l in logs:
-        meta = {}
-        txt = l.details or ""
-        if "[meta]" in txt:
-            try:
-                section = txt.split("[meta]", 1)[1]
-                for line in section.splitlines():
-                    line = line.strip()
-                    if not line or "=" not in line:
-                        continue
-                    k, v = line.split("=", 1)
-                    meta[k.strip()] = v.strip()
-            except Exception:
-                pass
+        meta = _extract_meta(l.details or "")
 
         tt = meta.get("task_type", "uncategorized")
         by_task_type[tt] = round(by_task_type.get(tt, 0.0) + float(l.hours), 2)
