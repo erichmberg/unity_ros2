@@ -238,6 +238,14 @@
       box-shadow: 0 4px 10px rgba(0,0,0,.35);
     }
 
+    .thesis-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .thesis-metric { border:1px solid #3b2a2a; background:#151723; border-radius:8px; padding:8px; }
+    .thesis-metric .k { font-size:11px; color:#9fa8c3; }
+    .thesis-metric .v { font-size:18px; font-weight:800; color:#e8eefc; margin-top:2px; }
+    .thesis-list-box { margin-top:8px; border:1px solid #2f3345; background:#121524; border-radius:8px; padding:8px; }
+    .thesis-list-box b { color:#d9e4ff; }
+    .thesis-list-box ul { margin:6px 0 0 16px; padding:0; color:#c7d4f7; }
+
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
       align-items: center; justify-content: center; z-index: 50;
@@ -454,7 +462,7 @@
           <button onclick="loadThesisSummary(30)">Last 30 days</button>
         </div>
         <div id="thesisScheduleWindow" style="margin-top:10px; border:1px solid #7a1111; background:#160404; border-radius:10px; min-height:180px; padding:10px;"></div>
-        <pre id="thesisSummary" style="margin-top:10px;">Click a button to load summary.</pre>
+        <div id="thesisSummary" style="margin-top:10px;"></div>
       </div>
     </div>
   </div>
@@ -1116,6 +1124,8 @@ function startPressDrag(){
   }
 }
 
+let thesisAutoLoaded = false;
+
 function switchTab(tab){
   const cal = document.getElementById('tabCalendar');
   const th = document.getElementById('tabThesis');
@@ -1126,6 +1136,11 @@ function switchTab(tab){
   th.classList.toggle('hidden', showCal);
   bCal.classList.toggle('active', showCal);
   bTh.classList.toggle('active', !showCal);
+
+  if (!showCal && !thesisAutoLoaded) {
+    thesisAutoLoaded = true;
+    loadThesisSummary(7);
+  }
 }
 
 function updateDragOverlay(){
@@ -1365,14 +1380,6 @@ async function loadThesisSummary(days){
   ]);
   const summary = await sr.json();
   const logsData = await lr.json();
-  document.getElementById('thesisSummary').textContent = JSON.stringify(summary,null,2);
-
-  const wrap = document.getElementById('thesisScheduleWindow');
-  const logs = logsData.items || [];
-  if (!logs.length) {
-    wrap.innerHTML = '<div style="color:#d8a8a8;">No thesis logs in this range.</div>';
-    return;
-  }
 
   const esc = (s='') => String(s)
     .replaceAll('&','&amp;')
@@ -1380,6 +1387,35 @@ async function loadThesisSummary(days){
     .replaceAll('>','&gt;')
     .replaceAll('"','&quot;')
     .replaceAll("'",'&#39;');
+
+  const byType = summary.hoursByTaskType || {};
+  const typeRows = Object.entries(byType)
+    .sort((a,b) => b[1]-a[1])
+    .map(([k,v]) => `<li><b>${esc(k)}</b>: ${esc(v)}h</li>`)
+    .join('') || '<li>No categorized entries yet.</li>';
+
+  const highlights = summary.weeklyHighlights || {};
+  const outcomes = (highlights.outcomes || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>None</li>';
+  const blockers = (highlights.blockers || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>None</li>';
+  const nextActions = (highlights.nextActions || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>None</li>';
+
+  document.getElementById('thesisSummary').innerHTML =
+    `<div class="thesis-summary-grid">`+
+      `<div class="thesis-metric"><div class="k">Days</div><div class="v">${esc(summary.days || 0)}</div></div>`+
+      `<div class="thesis-metric"><div class="k">Entries</div><div class="v">${esc(summary.entries || 0)}</div></div>`+
+      `<div class="thesis-metric"><div class="k">Hours</div><div class="v">${esc(summary.hours || 0)}h</div></div>`+
+    `</div>`+
+    `<div class="thesis-list-box"><b>Hours by task type</b><ul>${typeRows}</ul></div>`+
+    `<div class="thesis-list-box"><b>Outcomes</b><ul>${outcomes}</ul></div>`+
+    `<div class="thesis-list-box"><b>Blockers</b><ul>${blockers}</ul></div>`+
+    `<div class="thesis-list-box"><b>Next actions</b><ul>${nextActions}</ul></div>`;
+
+  const wrap = document.getElementById('thesisScheduleWindow');
+  const logs = logsData.items || [];
+  if (!logs.length) {
+    wrap.innerHTML = '<div style="color:#d8a8a8;">No thesis logs in this range.</div>';
+    return;
+  }
 
   const hourH = 24;
   const startHour = 6;
