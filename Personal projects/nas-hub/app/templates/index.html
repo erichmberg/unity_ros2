@@ -711,8 +711,27 @@ function loadCalendarView(){
   return loadWeek();
 }
 
-function shiftWeek(days){ weekStart.setDate(weekStart.getDate()+days); loadCalendarView(); }
-function goToCurrentWeek(){ weekStart=getMonday(new Date()); loadCalendarView(); }
+function shiftWeek(days){
+  if (calendarView === 'month') {
+    const m = new Date(weekStart);
+    m.setDate(1);
+    m.setMonth(m.getMonth() + (days >= 0 ? 1 : -1));
+    weekStart = getMonday(m);
+  } else {
+    weekStart.setDate(weekStart.getDate()+days);
+  }
+  loadCalendarView();
+}
+function goToCurrentWeek(){
+  if (calendarView === 'month') {
+    const m = new Date();
+    m.setDate(1);
+    weekStart = getMonday(m);
+  } else {
+    weekStart=getMonday(new Date());
+  }
+  loadCalendarView();
+}
 
 function hashHue(str){ let h=0; for(let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h); return Math.abs(h)%360; }
 function eventGradient(cal){
