@@ -132,19 +132,24 @@ def events(start: str, end: str):
                 "description": e.get("description", ""),
                 "start": e.get("start", {}),
                 "end": e.get("end", {}),
+                "recurrence": e.get("recurrence", []),
+                "recurringEventId": e.get("recurringEventId"),
             })
     return {"items": out}
 
 
-def _create_event(calendar_id: str, summary: str, description: str, start_dt: str, end_dt: str, tz: str = "Europe/Stockholm"):
+def _create_event(calendar_id: str, summary: str, description: str, start_dt: str, end_dt: str, tz: str = "Europe/Stockholm", recurrence_rule: str | None = None):
     creds = get_google_creds()
     svc = build("calendar", "v3", credentials=creds)
-    created = svc.events().insert(calendarId=calendar_id, body={
+    body = {
         "summary": summary,
         "description": description or "",
         "start": {"dateTime": start_dt, "timeZone": tz},
         "end": {"dateTime": end_dt, "timeZone": tz},
-    }).execute()
+    }
+    if recurrence_rule:
+        body["recurrence"] = [recurrence_rule]
+    created = svc.events().insert(calendarId=calendar_id, body=body).execute()
     return created
 
 
@@ -159,6 +164,7 @@ async def create_event(request: Request):
             body["start"],
             body["end"],
             body.get("timeZone", "Europe/Stockholm"),
+            body.get("recurrenceRule"),
         )
         return {"id": created.get("id"), "htmlLink": created.get("htmlLink")}
     except Exception as e:
@@ -172,6 +178,7 @@ def create_event_form(
     description: str = Form(""),
     start_local: str = Form(...),
     end_local: str = Form(...),
+    recurrence_rule: str = Form(""),
 ):
     try:
         created = _create_event(
@@ -181,6 +188,7 @@ def create_event_form(
             f"{start_local}:00",
             f"{end_local}:00",
             "Europe/Stockholm",
+            recurrence_rule or None,
         )
         return RedirectResponse(url=f"/?created={created.get('id')}", status_code=303)
     except Exception as e:
@@ -190,18 +198,26 @@ def create_event_form(
 @app.put("/api/events/{calendar_id}/{event_id}")
 async def update_event(calendar_id: str, event_id: str, request: Request):
     body = await request.json()
+    apply_series = bool(body.get("applySeries"))
+    target_event_id = body.get("seriesEventId") if apply_series and body.get("seriesEventId") else event_id
+
     creds = get_google_creds()
     svc = build("calendar", "v3", credentials=creds)
     try:
+        patch_body = {
+            "summary": body.get("summary", ""),
+            "description": body.get("description", ""),
+            "start": {"dateTime": body.get("start"), "timeZone": body.get("timeZone", "Europe/Stockholm")},
+            "end": {"dateTime": body.get("end"), "timeZone": body.get("timeZone", "Europe/Stockholm")},
+        }
+        recurrence_rule = body.get("recurrenceRule")
+        if recurrence_rule is not None:
+            patch_body["recurrence"] = [recurrence_rule] if recurrence_rule else []
+
         updated = svc.events().patch(
             calendarId=calendar_id,
-            eventId=event_id,
-            body={
-                "summary": body.get("summary", ""),
-                "description": body.get("description", ""),
-                "start": {"dateTime": body.get("start"), "timeZone": body.get("timeZone", "Europe/Stockholm")},
-                "end": {"dateTime": body.get("end"), "timeZone": body.get("timeZone", "Europe/Stockholm")},
-            },
+            eventId=target_event_id,
+            body=patch_body,
         ).execute()
         return {"ok": True, "id": updated.get("id")}
     except Exception as e:
@@ -209,10 +225,11 @@ async def update_event(calendar_id: str, event_id: str, request: Request):
 
 
 @app.delete("/api/events/{calendar_id}/{event_id}")
-def delete_event(calendar_id: str, event_id: str):
+def delete_event(calendar_id: str, event_id: str, applySeries: bool = False, seriesEventId: str | None = None):
+    target_event_id = seriesEventId if applySeries and seriesEventId else event_id
     creds = get_google_creds()
     svc = build("calendar", "v3", credentials=creds)
-    svc.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+    svc.events().delete(calendarId=calendar_id, eventId=target_event_id).execute()
     return JSONResponse({"ok": True})
 
 

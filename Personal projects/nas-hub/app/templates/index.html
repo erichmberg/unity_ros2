@@ -322,9 +322,15 @@
           <input id="mTitle" type="text" placeholder="Title" />
           <textarea id="mDesc" rows="3" placeholder="Description"></textarea>
           <label>Start</label>
-          <input id="mStart" type="datetime-local" />
+          <input id="mStart" type="datetime-local" step="900" lang="sv-SE" />
           <label>End</label>
-          <input id="mEnd" type="datetime-local" />
+          <input id="mEnd" type="datetime-local" step="900" lang="sv-SE" />
+          <label>Recurrence</label>
+          <select id="mRecurrence">
+            <option value="">Does not repeat</option>
+            <option value="RRULE:FREQ=WEEKLY">Repeats weekly</option>
+          </select>
+          <label><input id="mApplySeries" type="checkbox" style="width:auto; margin-right:6px;"/> Apply to entire series</label>
           <div class="btn-row">
             <button type="button" onclick="saveModalEvent()">Save changes</button>
             <button type="button" class="danger-text-btn" onclick="deleteModalEvent()">Delete event</button>
@@ -345,9 +351,14 @@
         <label>Description</label>
         <textarea id="cDesc" rows="3" placeholder="Description"></textarea>
         <label>Start</label>
-        <input id="cStart" type="datetime-local" />
+        <input id="cStart" type="datetime-local" step="900" lang="sv-SE" />
         <label>End</label>
-        <input id="cEnd" type="datetime-local" />
+        <input id="cEnd" type="datetime-local" step="900" lang="sv-SE" />
+        <label>Recurrence</label>
+        <select id="cRecurrence">
+          <option value="">Does not repeat</option>
+          <option value="RRULE:FREQ=WEEKLY">Repeats weekly</option>
+        </select>
         <div class="btn-row">
           <button type="button" onclick="saveCreateModalEvent()">Create event</button>
           <button type="button" onclick="closeCreateModal()">Cancel</button>
@@ -518,6 +529,7 @@ function openCreateModal(prefill = null){
   }
   document.getElementById('cTitle').value = '';
   document.getElementById('cDesc').value = '';
+  document.getElementById('cRecurrence').value = '';
   document.getElementById('createModalBackdrop').style.display = 'flex';
 }
 
@@ -532,7 +544,8 @@ async function saveCreateModalEvent(){
     description: document.getElementById('cDesc').value.trim(),
     start: `${document.getElementById('cStart').value}:00`,
     end: `${document.getElementById('cEnd').value}:00`,
-    timeZone: 'Europe/Stockholm'
+    timeZone: 'Europe/Stockholm',
+    recurrenceRule: document.getElementById('cRecurrence').value || null,
   };
   showLoading('Creating event…');
   const r = await fetch('/api/events', {
@@ -834,6 +847,11 @@ function openEventModal(ev){
   document.getElementById('mStart').value = toLocalInputValue(ev.start?.dateTime);
   document.getElementById('mEnd').value = toLocalInputValue(ev.end?.dateTime);
 
+  const rec = (ev.recurrence && ev.recurrence.length) ? ev.recurrence[0] : '';
+  document.getElementById('mRecurrence').value = rec === 'RRULE:FREQ=WEEKLY' ? rec : '';
+  document.getElementById('mApplySeries').checked = false;
+  document.getElementById('mApplySeries').disabled = !ev.recurringEventId;
+
   setModalMode(false);
   document.getElementById('eventModalBackdrop').style.display = 'flex';
 }
@@ -890,7 +908,10 @@ async function saveModalEvent(){
     description: document.getElementById('mDesc').value.trim(),
     start: `${document.getElementById('mStart').value}:00`,
     end: `${document.getElementById('mEnd').value}:00`,
-    timeZone: 'Europe/Stockholm'
+    timeZone: 'Europe/Stockholm',
+    recurrenceRule: document.getElementById('mRecurrence').value,
+    applySeries: document.getElementById('mApplySeries').checked,
+    seriesEventId: selectedEvent?.recurringEventId || null,
   };
   showLoading('Saving event…');
   const r = await fetch(`/api/events/${encodeURIComponent(selectedEvent.calendarId)}/${encodeURIComponent(selectedEvent.id)}`, {
@@ -907,7 +928,13 @@ async function deleteModalEvent(){
   if (!selectedEvent) return;
   if (!confirm('Delete this event?')) return;
   showLoading('Deleting event…');
-  const r = await fetch(`/api/events/${encodeURIComponent(selectedEvent.calendarId)}/${encodeURIComponent(selectedEvent.id)}`, { method:'DELETE' });
+  const applySeries = document.getElementById('mApplySeries').checked;
+  const q = new URLSearchParams();
+  if (applySeries) {
+    q.set('applySeries', 'true');
+    if (selectedEvent?.recurringEventId) q.set('seriesEventId', selectedEvent.recurringEventId);
+  }
+  const r = await fetch(`/api/events/${encodeURIComponent(selectedEvent.calendarId)}/${encodeURIComponent(selectedEvent.id)}?${q.toString()}`, { method:'DELETE' });
   if (!r.ok){ hideLoading(); alert('Delete failed'); return; }
   closeModal();
   await loadWeek();
