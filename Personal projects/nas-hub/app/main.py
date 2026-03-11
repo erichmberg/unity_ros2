@@ -433,9 +433,19 @@ async def agent_add_buffers(request: Request):
     event_id = body["eventId"]
     tz_name = body.get("timeZone", "Europe/Stockholm")
 
-    prep_min = int(body.get("prepMin", 0))
-    travel_before_min = int(body.get("travelBeforeMin", 0))
-    travel_after_min = int(body.get("travelAfterMin", 0))
+    prep_min_raw = int(body.get("prepMin", 0))
+    travel_before_min_raw = int(body.get("travelBeforeMin", 0))
+    travel_after_min_raw = int(body.get("travelAfterMin", 0))
+
+    # Keep planner blocks aligned with 15-minute calendar granularity.
+    def _normalize_block_minutes(v: int) -> int:
+        if v <= 0:
+            return 0
+        return max(15, v)
+
+    prep_min = _normalize_block_minutes(prep_min_raw)
+    travel_before_min = _normalize_block_minutes(travel_before_min_raw)
+    travel_after_min = _normalize_block_minutes(travel_after_min_raw)
 
     create_prep = bool(body.get("createPrep", prep_min > 0))
     create_travel_before = bool(body.get("createTravelBefore", travel_before_min > 0))
