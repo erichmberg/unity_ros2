@@ -1518,7 +1518,9 @@ async function loadThesisSummary(days){
   }
 
   wrap.innerHTML = `<div class="thesis-week-wrap">`+
-    `<div class="thesis-week-header" style="grid-template-columns:repeat(${colCount}, minmax(0,1fr));">${header}</div>`+
+    `<div class="thesis-week-header" style="grid-template-columns:52px repeat(${colCount}, minmax(0,1fr));">`+
+      `<div></div>${header}`+
+    `</div>`+
     `<div class="thesis-week-body">`+
       `<div class="thesis-hour-rail" style="height:${totalH}px;">${rail}</div>`+
       `<div class="thesis-days-grid" style="grid-template-columns:repeat(${colCount}, minmax(0,1fr));">${cols}</div>`+
