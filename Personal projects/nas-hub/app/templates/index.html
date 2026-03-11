@@ -1151,12 +1151,18 @@ window.addEventListener('mouseup', async () => {
     resizeState = null;
     try {
       if (snap.preview?.isConnected) snap.preview.remove();
+      let applySeries = false;
+      if (snap.event?.recurringEventId) {
+        applySeries = confirm('Apply resize to the whole recurring series?\n\nOK = whole series\nCancel = only this event');
+      }
       const payload = {
         summary: snap.event.summary || '(no title)',
         description: snap.event.description || '',
         start: `${minutesToInput(dayDateFromIndex(snap.day), snap.startMin)}:00`,
         end: `${minutesToInput(dayDateFromIndex(snap.day), snap.endMin)}:00`,
-        timeZone: 'Europe/Stockholm'
+        timeZone: 'Europe/Stockholm',
+        applySeries,
+        seriesEventId: snap.event?.recurringEventId || null,
       };
       showLoading('Saving resized event…');
       const r = await fetch(`/api/events/${encodeURIComponent(snap.event.calendarId)}/${encodeURIComponent(snap.event.id)}`, {
