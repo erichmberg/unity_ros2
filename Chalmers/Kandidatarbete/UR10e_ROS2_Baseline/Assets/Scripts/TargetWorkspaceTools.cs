@@ -16,13 +16,13 @@ public class TargetWorkspaceTools : MonoBehaviour
     public Renderer targetRenderer;
 
     [Header("Workspace bounds (world)")]
-    public Vector3 minBounds = new Vector3(-0.75f, 0.10f, 1.62f);
-    public Vector3 maxBounds = new Vector3(-0.10f, 0.50f, 2.20f);
+    public Vector3 minBounds = new Vector3(-0.75f, 1.62f, 0.10f);
+    public Vector3 maxBounds = new Vector3(-0.10f, 2.20f, 0.50f);
 
     public enum UpAxis { Y, Z }
 
     [Header("Floor safety")]
-    public UpAxis upAxis = UpAxis.Z;
+    public UpAxis upAxis = UpAxis.Y;
     public float floorLevel = 1.60f;
     public float minClearanceAboveFloor = 0.06f;
 

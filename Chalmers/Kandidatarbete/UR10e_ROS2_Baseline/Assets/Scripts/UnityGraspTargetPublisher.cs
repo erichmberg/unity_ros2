@@ -23,7 +23,7 @@ public class UnityGraspTargetPublisher : MonoBehaviour
     public KeyCode publishKey = KeyCode.T;
 
     [Header("ROS-frame safety constraints (after Unity->FLU conversion)")]
-    public bool enforceRosConstraints = true;
+    public bool enforceRosConstraints = false;
     public float rosMinX = 1.63f;   // rail height ~1.60 + clearance
     public float rosMinZ = 0.10f;   // keep in front-side band
     public float rosRailCenterY = 0.0f;
