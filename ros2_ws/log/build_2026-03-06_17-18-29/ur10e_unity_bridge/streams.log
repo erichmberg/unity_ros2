@@ -1,0 +1,28 @@
+[0.517s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/src/ur10e_unity_bridge': PYTHONPATH=/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/ur10e_unity_bridge build --build-base /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/build install --record /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/install.log --single-version-externally-managed install_data
+[0.659s] running egg_info
+[0.659s] writing ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/PKG-INFO
+[0.662s] writing dependency_links to ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/dependency_links.txt
+[0.662s] writing entry points to ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/entry_points.txt
+[0.662s] writing requirements to ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/requires.txt
+[0.662s] writing top-level names to ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/top_level.txt
+[0.664s] reading manifest file '../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/SOURCES.txt'
+[0.665s] writing manifest file '../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info/SOURCES.txt'
+[0.665s] running build
+[0.665s] running build_py
+[0.665s] copying ur10e_unity_bridge/pose_goal_planner.py -> /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/build/lib/ur10e_unity_bridge
+[0.665s] running install
+[0.666s] running install_lib
+[0.666s] copying /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/build/lib/ur10e_unity_bridge/pose_goal_planner.py -> /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/python3.10/site-packages/ur10e_unity_bridge
+[0.666s] byte-compiling /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/python3.10/site-packages/ur10e_unity_bridge/pose_goal_planner.py to pose_goal_planner.cpython-310.pyc
+[0.667s] running install_data
+[0.668s] copying package.xml -> /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/share/ur10e_unity_bridge
+[0.668s] copying launch/pose_goal_planner.launch.py -> /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/share/ur10e_unity_bridge/launch
+[0.668s] running install_egg_info
+[0.670s] removing '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/python3.10/site-packages/ur10e_unity_bridge-0.1.0-py3.10.egg-info' (and everything under it)
+[0.670s] Copying ../../build/ur10e_unity_bridge/ur10e_unity_bridge.egg-info to /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/python3.10/site-packages/ur10e_unity_bridge-0.1.0-py3.10.egg-info
+[0.670s] running install_scripts
+[0.683s] Installing display_to_unity script to /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/ur10e_unity_bridge
+[0.684s] Installing floor_collision_publisher script to /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/ur10e_unity_bridge
+[0.684s] Installing pose_goal_planner script to /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/ur10e_unity_bridge
+[0.684s] writing list of installed files to '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/install.log'
+[0.703s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/src/ur10e_unity_bridge' returned '0': PYTHONPATH=/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_unity_bridge/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/ur10e_unity_bridge build --build-base /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/build install --record /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_unity_bridge/install.log --single-version-externally-managed install_data

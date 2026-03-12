@@ -1,0 +1,70 @@
+[0.007s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/src/ur_description -DCMAKE_INSTALL_PREFIX=/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description
+[0.045s] -- The C compiler identification is GNU 11.4.0
+[0.082s] -- The CXX compiler identification is GNU 11.4.0
+[0.086s] -- Detecting C compiler ABI info
+[0.132s] -- Detecting C compiler ABI info - done
+[0.136s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.137s] -- Detecting C compile features
+[0.137s] -- Detecting C compile features - done
+[0.139s] -- Detecting CXX compiler ABI info
+[0.189s] -- Detecting CXX compiler ABI info - done
+[0.194s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.194s] -- Detecting CXX compile features
+[0.194s] -- Detecting CXX compile features - done
+[0.196s] -- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.292s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.391s] -- Configuring done
+[0.392s] -- Generating done
+[0.393s] -- Build files have been written to: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description
+[0.396s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/src/ur_description -DCMAKE_INSTALL_PREFIX=/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description
+[0.398s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description -- -j8 -l8
+[0.422s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description -- -j8 -l8
+[0.428s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description
+[0.433s] -- Install configuration: ""
+[0.433s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/urdf
+[0.433s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/urdf/ur10e_official.urdf
+[0.433s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes
+[0.433s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e
+[0.434s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual
+[0.434s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/upperarm.dae
+[0.435s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/wrist1.dae
+[0.436s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/wrist3.dae
+[0.436s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/shoulder.dae
+[0.437s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/forearm.dae
+[0.438s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/wrist2.dae
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/visual/base.dae
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/wrist2.stl
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/forearm.stl
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/shoulder.stl
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/wrist3.stl
+[0.439s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/upperarm.stl
+[0.440s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/base.stl
+[0.440s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/ur10e/collision/wrist1.stl
+[0.440s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper
+[0.440s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/gripper_base_with_partial_fingers.stl
+[0.455s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/README.md
+[0.455s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/gripper_base_with_partial_fingers_light.stl
+[0.455s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/gripper_base_with_partial_fingers_backup_29M.stl
+[0.470s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper/finger.stl
+[0.470s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/meshes/gripper_base_with_partial_fingers_light.stl
+[0.470s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/launch
+[0.470s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/launch/display.launch.py
+[0.470s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/rviz
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/rviz/ur10e.rviz
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ament_index/resource_index/package_run_dependencies/ur_description
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ament_index/resource_index/parent_prefix_path/ur_description
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/environment/ament_prefix_path.sh
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/environment/ament_prefix_path.dsv
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/environment/path.sh
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/environment/path.dsv
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/local_setup.bash
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/local_setup.sh
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/local_setup.zsh
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/local_setup.dsv
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/package.dsv
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ament_index/resource_index/packages/ur_description
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/cmake/ur_descriptionConfig.cmake
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/cmake/ur_descriptionConfig-version.cmake
+[0.471s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur_description/share/ur_description/package.xml
+[0.473s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur_description

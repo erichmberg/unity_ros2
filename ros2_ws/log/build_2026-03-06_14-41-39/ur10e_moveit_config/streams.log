@@ -1,0 +1,51 @@
+[0.005s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/src/ur10e_moveit_config -DCMAKE_INSTALL_PREFIX=/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config
+[0.039s] -- The C compiler identification is GNU 11.4.0
+[0.081s] -- The CXX compiler identification is GNU 11.4.0
+[0.085s] -- Detecting C compiler ABI info
+[0.131s] -- Detecting C compiler ABI info - done
+[0.136s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.136s] -- Detecting C compile features
+[0.137s] -- Detecting C compile features - done
+[0.138s] -- Detecting CXX compiler ABI info
+[0.189s] -- Detecting CXX compiler ABI info - done
+[0.194s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.194s] -- Detecting CXX compile features
+[0.195s] -- Detecting CXX compile features - done
+[0.197s] -- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.296s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.392s] -- Configuring done
+[0.393s] -- Generating done
+[0.394s] -- Build files have been written to: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config
+[0.397s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/src/ur10e_moveit_config -DCMAKE_INSTALL_PREFIX=/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config
+[0.398s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config -- -j8 -l8
+[0.425s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config -- -j8 -l8
+[0.425s] Invoking command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config
+[0.431s] -- Install configuration: ""
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/ur10e.srdf
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/ompl_planning.yaml
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/joint_limits.yaml
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/kinematics.yaml
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/moveit_controllers.yaml
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/chomp_planning.yaml
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/config/move_group.yaml
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/launch
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/launch/demo.launch.py
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/rviz
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/rviz/moveit.rviz
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ament_index/resource_index/package_run_dependencies/ur10e_moveit_config
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ament_index/resource_index/parent_prefix_path/ur10e_moveit_config
+[0.431s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/environment/ament_prefix_path.sh
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/environment/ament_prefix_path.dsv
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/environment/path.sh
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/environment/path.dsv
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/local_setup.bash
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/local_setup.sh
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/local_setup.zsh
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/local_setup.dsv
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/package.dsv
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ament_index/resource_index/packages/ur10e_moveit_config
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/cmake/ur10e_moveit_configConfig.cmake
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/cmake/ur10e_moveit_configConfig-version.cmake
+[0.432s] -- Installing: /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/install/ur10e_moveit_config/share/ur10e_moveit_config/package.xml
+[0.434s] Invoked command in '/home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/eric/EricBerg/Chalmers/Kandidatarbete/ros2_ws/build/ur10e_moveit_config

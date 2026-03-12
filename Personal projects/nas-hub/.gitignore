@@ -1,4 +1,0 @@
-app/__pycache__/
-*.pyc
-data/*.db
-secrets/*.json
