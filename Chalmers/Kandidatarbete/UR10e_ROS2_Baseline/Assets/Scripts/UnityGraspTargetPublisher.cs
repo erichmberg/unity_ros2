@@ -22,6 +22,13 @@ public class UnityGraspTargetPublisher : MonoBehaviour
     public float publishRateHz = 2.0f;
     public KeyCode publishKey = KeyCode.T;
 
+    [Header("ROS-frame safety constraints (after Unity->FLU conversion)")]
+    public bool enforceRosConstraints = true;
+    public float rosMinX = 1.63f;   // rail height ~1.60 + clearance
+    public float rosMinZ = 0.10f;   // keep in front-side band
+    public float rosRailCenterY = 0.0f;
+    public float rosMaxDistanceFromRailY = 0.75f;
+
     ROSConnection ros;
     float nextPublishTime;
 
@@ -78,6 +85,14 @@ public class UnityGraspTargetPublisher : MonoBehaviour
 
         var p = targetTransform.position.To<FLU>();
         var q = targetTransform.rotation.To<FLU>();
+
+        // Apply limits in ROS/FLU frame so axis mapping is always correct.
+        if (enforceRosConstraints)
+        {
+            p.x = Mathf.Max(p.x, rosMinX);
+            p.z = Mathf.Max(p.z, rosMinZ);
+            p.y = Mathf.Clamp(p.y, rosRailCenterY - rosMaxDistanceFromRailY, rosRailCenterY + rosMaxDistanceFromRailY);
+        }
 
         var msg = new PoseStampedMsg
         {
