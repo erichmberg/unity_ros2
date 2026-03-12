@@ -14,4 +14,18 @@ def generate_launch_description():
                 'publish_on_every_plan': True,
             }],
         ),
+        Node(
+            package='ur10e_unity_bridge',
+            executable='floor_collision_publisher',
+            output='screen',
+            parameters=[{
+                'topic': '/collision_object',
+                'frame_id': 'world',
+                'repeats': 8,
+                'period_s': 0.5,
+                'publish_floor': True,
+                'publish_rail': True,
+                'publish_cell_box': False,
+            }],
+        ),
     ])
