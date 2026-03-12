@@ -1,5 +1,5 @@
-default_velocity_scaling_factor: 0.2
-default_acceleration_scaling_factor: 0.2
+default_velocity_scaling_factor: 0.35
+default_acceleration_scaling_factor: 0.25
 
 joint_limits:
   rail_joint: {has_velocity_limits: true, max_velocity: 0.4, has_acceleration_limits: false, has_position_limits: true, min_position: -2.325, max_position: 2.325}
