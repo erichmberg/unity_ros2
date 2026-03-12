@@ -16,14 +16,14 @@ public class TargetWorkspaceTools : MonoBehaviour
     public Renderer targetRenderer;
 
     [Header("Workspace bounds (world)")]
-    public Vector3 minBounds = new Vector3(0.20f, -0.35f, 0.20f);
-    public Vector3 maxBounds = new Vector3(0.65f, 0.35f, 0.55f);
+    public Vector3 minBounds = new Vector3(-0.75f, -0.50f, 1.62f);
+    public Vector3 maxBounds = new Vector3(0.75f, 0.50f, 2.20f);
 
     public enum UpAxis { Y, Z }
 
     [Header("Floor safety")]
-    public UpAxis upAxis = UpAxis.Y;
-    public float floorLevel = 0.0f;
+    public UpAxis upAxis = UpAxis.Z;
+    public float floorLevel = 1.60f;
     public float minClearanceAboveFloor = 0.06f;
 
     [Header("Simple reachability")]
@@ -36,6 +36,8 @@ public class TargetWorkspaceTools : MonoBehaviour
     public bool limitDistanceFromRail = true;
     public RailDirection railDirection = RailDirection.Z;
     public float maxDistanceFromRailMeters = 0.75f;
+    public bool enforceMinHeightFromRail = true;
+    public float minHeightAboveRail = 0.03f;
     public Vector3 railWorldFallback = new Vector3(0f, -0.02f, 1.6f);
 
     [Header("Colors")]
@@ -239,6 +241,15 @@ public class TargetWorkspaceTools : MonoBehaviour
                 float dx = p.x - railPos.x;
                 p.x = railPos.x + Mathf.Clamp(dx, -maxD, maxD);
             }
+        }
+
+        if (enforceMinHeightFromRail)
+        {
+            float minUp = (upAxis == UpAxis.Z) ? (railPos.z + minHeightAboveRail) : (railPos.y + minHeightAboveRail);
+            if (upAxis == UpAxis.Z)
+                p.z = Mathf.Max(p.z, minUp);
+            else
+                p.y = Mathf.Max(p.y, minUp);
         }
 
         targetTransform.position = p;
