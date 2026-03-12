@@ -18,13 +18,10 @@ def generate_launch_description():
                 'planner_id': 'RRTConnectkConfigDefault',
                 'allowed_planning_time': 10.0,
                 'num_planning_attempts': 10,
-                'max_velocity_scaling_factor': 0.35,
-                'max_acceleration_scaling_factor': 0.25,
-                'position_tolerance': 0.005,
-                'orientation_tolerance': 0.03,
-                'target_offset_x': 0.0,
-                'target_offset_y': 0.0,
-                'target_offset_z': 0.0,
+                'max_velocity_scaling_factor': 0.2,
+                'max_acceleration_scaling_factor': 0.2,
+                'position_tolerance': 0.01,
+                'orientation_tolerance': 0.05,
             }],
         )
     ])

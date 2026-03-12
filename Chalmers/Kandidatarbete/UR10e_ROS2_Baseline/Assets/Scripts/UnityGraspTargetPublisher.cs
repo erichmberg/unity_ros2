@@ -13,21 +13,12 @@ public class UnityGraspTargetPublisher : MonoBehaviour
 
     [Header("Target")]
     public Transform targetTransform;
-    public bool ensureVisibleTargetMarker = true;
-    public float markerScale = 0.04f;
 
     [Header("Publishing")]
     public bool publishOnStart = false;
     public bool publishContinuously = false;
     public float publishRateHz = 2.0f;
-    public KeyCode publishKey = KeyCode.T;
-
-    [Header("ROS-frame safety constraints (after Unity->FLU conversion)")]
-    public bool enforceRosConstraints = false;
-    public float rosMinX = 1.63f;   // rail height ~1.60 + clearance
-    public float rosMinZ = 0.10f;   // keep in front-side band
-    public float rosRailCenterY = 0.0f;
-    public float rosMaxDistanceFromRailY = 0.75f;
+    public KeyCode publishKey = KeyCode.G;
 
     ROSConnection ros;
     float nextPublishTime;
@@ -37,21 +28,6 @@ public class UnityGraspTargetPublisher : MonoBehaviour
         ros = ROSConnection.GetOrCreateInstance();
         ros.RegisterPublisher<PoseStampedMsg>(topicName);
         Debug.Log($"UnityGraspTargetPublisher ready on topic: {topicName}");
-
-        if (targetTransform != null && ensureVisibleTargetMarker)
-        {
-            var r = targetTransform.GetComponentInChildren<Renderer>();
-            if (r == null)
-            {
-                var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                sphere.name = "TargetVisualMarker";
-                sphere.transform.SetParent(targetTransform, false);
-                sphere.transform.localPosition = Vector3.zero;
-                sphere.transform.localRotation = Quaternion.identity;
-                sphere.transform.localScale = Vector3.one * Mathf.Max(0.005f, markerScale);
-                Debug.Log("UnityGraspTargetPublisher: created fallback visible marker sphere.");
-            }
-        }
 
         if (publishOnStart)
             PublishNow();
@@ -77,22 +53,8 @@ public class UnityGraspTargetPublisher : MonoBehaviour
             return;
         }
 
-        var tools = targetTransform.GetComponent<TargetWorkspaceTools>();
-        if (tools == null)
-            tools = targetTransform.GetComponentInParent<TargetWorkspaceTools>();
-        if (tools != null)
-            tools.ClampTargetToRailDistance();
-
         var p = targetTransform.position.To<FLU>();
         var q = targetTransform.rotation.To<FLU>();
-
-        // Apply limits in ROS/FLU frame so axis mapping is always correct.
-        if (enforceRosConstraints)
-        {
-            p.x = Mathf.Max(p.x, rosMinX);
-            p.z = Mathf.Max(p.z, rosMinZ);
-            p.y = Mathf.Clamp(p.y, rosRailCenterY - rosMaxDistanceFromRailY, rosRailCenterY + rosMaxDistanceFromRailY);
-        }
 
         var msg = new PoseStampedMsg
         {

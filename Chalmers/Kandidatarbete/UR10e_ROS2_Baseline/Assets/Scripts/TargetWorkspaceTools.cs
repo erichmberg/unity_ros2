@@ -11,42 +11,23 @@ public class TargetWorkspaceTools : MonoBehaviour
     [Header("References")]
     public Transform targetTransform;
     public Transform robotBaseTransform;
-    public Transform railReferenceTransform;
     public UnityGraspTargetPublisher publisher;
     public Renderer targetRenderer;
 
     [Header("Workspace bounds (world)")]
-    public Vector3 minBounds = new Vector3(-0.75f, 1.62f, 0.10f);
-    public Vector3 maxBounds = new Vector3(-0.10f, 2.20f, 0.50f);
+    public Vector3 minBounds = new Vector3(0.20f, -0.35f, 0.20f);
+    public Vector3 maxBounds = new Vector3(0.65f, 0.35f, 0.55f);
 
     public enum UpAxis { Y, Z }
 
     [Header("Floor safety")]
     public UpAxis upAxis = UpAxis.Y;
-    public float floorLevel = 1.60f;
+    public float floorLevel = 0.0f;
     public float minClearanceAboveFloor = 0.06f;
 
     [Header("Simple reachability")]
     public float minReachMeters = 0.18f;
     public float maxReachMeters = 1.05f;
-
-    public enum RailDirection { X, Z }
-
-    [Header("Rail proximity constraint")]
-    public bool limitDistanceFromRail = true;
-    public RailDirection railDirection = RailDirection.Z;
-    public float maxDistanceFromRailMeters = 0.75f;
-    public bool enforceMinHeightFromRail = true;
-    public float minHeightAboveRail = 0.03f;
-    public Vector3 railWorldFallback = new Vector3(0f, -0.02f, 1.6f);
-
-    [Header("Lower bound constraint")]
-    public bool enforceMinZ = true;
-    public float minZWorld = 0.10f;
-
-    [Header("Cell side constraint (Unity world)")]
-    public bool enforceNegativeXSide = true;
-    public float maxXWorld = -0.10f;
 
     [Header("Colors")]
     public Color reachableColor = new Color(0.10f, 0.85f, 0.25f, 1f);
@@ -119,7 +100,6 @@ public class TargetWorkspaceTools : MonoBehaviour
         );
 
         targetTransform.position = p;
-        ClampTargetToRailDistance();
         UpdateReachabilityColor();
     }
 
@@ -180,7 +160,6 @@ public class TargetWorkspaceTools : MonoBehaviour
         else
             top.z += boxScale.z * 0.5f + boxTopTargetOffset;
         targetTransform.position = top;
-        ClampTargetToRailDistance();
 
         UpdateReachabilityColor();
     }
@@ -211,62 +190,6 @@ public class TargetWorkspaceTools : MonoBehaviour
         bool ok = IsReachableSimple();
         if (targetRenderer.material != null)
             targetRenderer.material.color = ok ? reachableColor : unreachableColor;
-    }
-
-    public void ClampTargetToRailDistance()
-    {
-        if (!limitDistanceFromRail || targetTransform == null)
-            return;
-
-        Vector3 railPos = railReferenceTransform != null ? railReferenceTransform.position : railWorldFallback;
-        float maxD = Mathf.Max(0.01f, maxDistanceFromRailMeters);
-
-        Vector3 p = targetTransform.position;
-
-        // Keep the workspace "up" axis free and clamp lateral distance from rail only.
-        if (upAxis == UpAxis.Y)
-        {
-            if (railDirection == RailDirection.Z)
-            {
-                float dx = p.x - railPos.x;
-                p.x = railPos.x + Mathf.Clamp(dx, -maxD, maxD);
-            }
-            else // rail along X => clamp Z distance
-            {
-                float dz = p.z - railPos.z;
-                p.z = railPos.z + Mathf.Clamp(dz, -maxD, maxD);
-            }
-        }
-        else // UpAxis.Z
-        {
-            if (railDirection == RailDirection.X)
-            {
-                float dy = p.y - railPos.y;
-                p.y = railPos.y + Mathf.Clamp(dy, -maxD, maxD);
-            }
-            else // rail along Z => clamp X distance
-            {
-                float dx = p.x - railPos.x;
-                p.x = railPos.x + Mathf.Clamp(dx, -maxD, maxD);
-            }
-        }
-
-        if (enforceMinHeightFromRail)
-        {
-            float minUp = (upAxis == UpAxis.Z) ? (railPos.z + minHeightAboveRail) : (railPos.y + minHeightAboveRail);
-            if (upAxis == UpAxis.Z)
-                p.z = Mathf.Max(p.z, minUp);
-            else
-                p.y = Mathf.Max(p.y, minUp);
-        }
-
-        if (enforceMinZ)
-            p.z = Mathf.Max(p.z, minZWorld);
-
-        if (enforceNegativeXSide)
-            p.x = Mathf.Min(p.x, maxXWorld);
-
-        targetTransform.position = p;
     }
 
     void OnDrawGizmosSelected()
