@@ -21,6 +21,17 @@ public class JointTrajectoryToUr10e : MonoBehaviour
     public float railDamping = 6000f;
     public float railForceLimit = 100000f;
 
+    [Header("Base/Shoulder Tuning")]
+    public string baseJointName = "shoulder_pan_joint";
+    public string shoulderJointName = "shoulder_lift_joint";
+    public float baseMaxDegreesPerSecond = 220f;
+    public float baseStiffness = 7000f;
+    public float baseDamping = 900f;
+    public float baseForceLimit = 12000f;
+    public float shoulderStiffness = 4500f;
+    public float shoulderDamping = 700f;
+    public float shoulderForceLimit = 9000f;
+
     readonly Dictionary<string, ArticulationBody> jointMap = new();
     readonly Dictionary<string, float> cmdTarget = new();
 
@@ -118,6 +129,8 @@ public class JointTrajectoryToUr10e : MonoBehaviour
             bool isFinger = jName.IndexOf("finger", StringComparison.OrdinalIgnoreCase) >= 0;
             bool isPrismatic = joint.jointType == ArticulationJointType.PrismaticJoint;
             bool isRail = string.Equals(jName, railJointName, StringComparison.OrdinalIgnoreCase);
+            bool isBase = string.Equals(jName, baseJointName, StringComparison.OrdinalIgnoreCase);
+            bool isShoulder = string.Equals(jName, shoulderJointName, StringComparison.OrdinalIgnoreCase);
 
             // For revolute joints ROS values are radians; for prismatic values are meters.
             float desired = isPrismatic
@@ -133,6 +146,18 @@ public class JointTrajectoryToUr10e : MonoBehaviour
                 drive.damping = Mathf.Max(drive.damping, railDamping);
                 drive.forceLimit = Mathf.Max(drive.forceLimit, railForceLimit);
             }
+            else if (isBase)
+            {
+                drive.stiffness = Mathf.Max(drive.stiffness, baseStiffness);
+                drive.damping = Mathf.Max(drive.damping, baseDamping);
+                drive.forceLimit = Mathf.Max(drive.forceLimit, baseForceLimit);
+            }
+            else if (isShoulder)
+            {
+                drive.stiffness = Mathf.Max(drive.stiffness, shoulderStiffness);
+                drive.damping = Mathf.Max(drive.damping, shoulderDamping);
+                drive.forceLimit = Mathf.Max(drive.forceLimit, shoulderForceLimit);
+            }
             else
             {
                 if (drive.stiffness <= 0f) drive.stiffness = 800f;
@@ -144,7 +169,7 @@ public class JointTrajectoryToUr10e : MonoBehaviour
             float current = cmdTarget.TryGetValue(jName, out var v) ? v : drive.target;
             float speed = isPrismatic
                 ? (isRail ? railMaxMetersPerSecond : (isFinger ? fingerMaxMetersPerSecond : maxMetersPerSecond))
-                : (isFinger ? fingerMaxDegreesPerSecond : maxDegreesPerSecond);
+                : (isBase ? baseMaxDegreesPerSecond : (isFinger ? fingerMaxDegreesPerSecond : maxDegreesPerSecond));
             float maxStep = speed * Time.fixedDeltaTime;
             float next = Mathf.MoveTowards(current, desired, maxStep);
 
