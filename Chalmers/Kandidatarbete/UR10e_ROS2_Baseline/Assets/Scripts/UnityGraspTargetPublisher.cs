@@ -18,7 +18,7 @@ public class UnityGraspTargetPublisher : MonoBehaviour
     public bool publishOnStart = false;
     public bool publishContinuously = false;
     public float publishRateHz = 2.0f;
-    public KeyCode publishKey = KeyCode.G;
+    public KeyCode publishKey = KeyCode.T;
 
     ROSConnection ros;
     float nextPublishTime;
