@@ -40,9 +40,9 @@ public class TargetWorkspaceTools : MonoBehaviour
     public float minHeightAboveRail = 0.03f;
     public Vector3 railWorldFallback = new Vector3(0f, -0.02f, 1.6f);
 
-    [Header("Side constraint")]
-    public bool enforcePositiveYSide = true;
-    public float minYWorld = 0.10f;
+    [Header("Lower bound constraint")]
+    public bool enforceMinZ = true;
+    public float minZWorld = 0.10f;
 
     [Header("Colors")]
     public Color reachableColor = new Color(0.10f, 0.85f, 0.25f, 1f);
@@ -256,8 +256,8 @@ public class TargetWorkspaceTools : MonoBehaviour
                 p.y = Mathf.Max(p.y, minUp);
         }
 
-        if (enforcePositiveYSide)
-            p.y = Mathf.Max(p.y, minYWorld);
+        if (enforceMinZ)
+            p.z = Mathf.Max(p.z, minZWorld);
 
         targetTransform.position = p;
     }
