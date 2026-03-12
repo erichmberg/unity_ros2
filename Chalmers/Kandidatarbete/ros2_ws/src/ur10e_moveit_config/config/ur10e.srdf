@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot name="ur10e_robot">
   <group name="ur10e_arm">
-    <chain base_link="rail_base_link" tip_link="wrist_3_link"/>
+    <chain base_link="rail_base_link" tip_link="gripper_base_link"/>
   </group>
 
   <group name="gripper">
