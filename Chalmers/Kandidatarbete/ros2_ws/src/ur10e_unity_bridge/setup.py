@@ -23,6 +23,7 @@ setup(
             'floor_collision_publisher = ur10e_unity_bridge.floor_collision_publisher:main',
             'pose_goal_planner = ur10e_unity_bridge.pose_goal_planner:main',
             'pick_sequence_planner = ur10e_unity_bridge.pick_sequence_planner:main',
+            'mesh_collision_publisher = ur10e_unity_bridge.mesh_collision_publisher:main',
         ],
     },
 )
