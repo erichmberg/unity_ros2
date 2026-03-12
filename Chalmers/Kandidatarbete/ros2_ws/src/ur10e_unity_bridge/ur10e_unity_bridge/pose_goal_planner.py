@@ -26,15 +26,18 @@ class PoseGoalPlanner(Node):
         self.declare_parameter('unity_topic', '/unity/ur10e_joint_trajectory')
         self.declare_parameter('action_name', '/move_action')
         self.declare_parameter('group_name', 'ur10e_arm')
-        self.declare_parameter('ee_link', 'wrist_3_link')
+        self.declare_parameter('ee_link', 'tool0')
         self.declare_parameter('pipeline_id', 'ompl')
         self.declare_parameter('planner_id', 'RRTConnectkConfigDefault')
         self.declare_parameter('allowed_planning_time', 10.0)
         self.declare_parameter('num_planning_attempts', 10)
         self.declare_parameter('max_velocity_scaling_factor', 0.35)
         self.declare_parameter('max_acceleration_scaling_factor', 0.25)
-        self.declare_parameter('position_tolerance', 0.02)
-        self.declare_parameter('orientation_tolerance', 0.12)
+        self.declare_parameter('position_tolerance', 0.005)
+        self.declare_parameter('orientation_tolerance', 0.03)
+        self.declare_parameter('target_offset_x', 0.0)
+        self.declare_parameter('target_offset_y', 0.0)
+        self.declare_parameter('target_offset_z', 0.0)
 
         self.input_topic = self.get_parameter('input_topic').value
         self.unity_topic = self.get_parameter('unity_topic').value
@@ -55,6 +58,18 @@ class PoseGoalPlanner(Node):
         position_tolerance = float(self.get_parameter('position_tolerance').value)
         orientation_tolerance = float(self.get_parameter('orientation_tolerance').value)
 
+        target_offset_x = float(self.get_parameter('target_offset_x').value)
+        target_offset_y = float(self.get_parameter('target_offset_y').value)
+        target_offset_z = float(self.get_parameter('target_offset_z').value)
+
+        # Apply configurable ROS-frame offset before planning constraints.
+        target_pose = PoseStamped()
+        target_pose.header = target.header
+        target_pose.pose = target.pose
+        target_pose.pose.position.x += target_offset_x
+        target_pose.pose.position.y += target_offset_y
+        target_pose.pose.position.z += target_offset_z
+
         # Position constraint as a small box around target
         primitive = SolidPrimitive()
         primitive.type = SolidPrimitive.BOX
@@ -62,18 +77,18 @@ class PoseGoalPlanner(Node):
 
         region = BoundingVolume()
         region.primitives.append(primitive)
-        region.primitive_poses.append(target.pose)
+        region.primitive_poses.append(target_pose.pose)
 
         pos_c = PositionConstraint()
-        pos_c.header = target.header
+        pos_c.header = target_pose.header
         pos_c.link_name = self.ee_link
         pos_c.constraint_region = region
         pos_c.weight = 1.0
 
         ori_c = OrientationConstraint()
-        ori_c.header = target.header
+        ori_c.header = target_pose.header
         ori_c.link_name = self.ee_link
-        ori_c.orientation = target.pose.orientation
+        ori_c.orientation = target_pose.pose.orientation
         ori_c.absolute_x_axis_tolerance = orientation_tolerance
         ori_c.absolute_y_axis_tolerance = orientation_tolerance
         ori_c.absolute_z_axis_tolerance = orientation_tolerance
