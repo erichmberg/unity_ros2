@@ -38,6 +38,19 @@ def generate_launch_description():
             }],
         ),
 
+        # Windows waypoint GUI -> TCP JSON -> PoseStamped on /unity/grasp_target
+        Node(
+            package='ur10e_unity_bridge',
+            executable='tcp_waypoint_listener',
+            output='screen',
+            parameters=[{
+                'bind_host': '0.0.0.0',
+                'bind_port': 9100,
+                'output_topic': '/unity/grasp_target',
+                'frame_id': 'world',
+            }],
+        ),
+
         # Keep floor in planning scene continuously
         Node(
             package='ur10e_unity_bridge',

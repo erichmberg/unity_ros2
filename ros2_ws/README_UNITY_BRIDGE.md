@@ -37,6 +37,11 @@ source install/setup.bash
 ros2 launch ur10e_unity_bridge autonomy.launch.py
 ```
 
+This launch now also starts:
+- a TCP waypoint listener on `0.0.0.0:9100`
+- it accepts newline-delimited JSON from a Windows GUI
+- it republishes received waypoints as `geometry_msgs/PoseStamped` on `/unity/grasp_target`
+
 ### Terminal C (pick sequence mode): bridge + staged pick planner + floor
 ```bash
 cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
@@ -52,6 +57,33 @@ This one launch starts:
 Note: In pick mode, the RViz display bridge is intentionally disabled to avoid trajectory conflicts.
 
 Now you only need 3 terminals total.
+
+## Windows coordinate input
+
+If you want to send coordinates from a Windows controller instead of publishing ROS topics directly, send newline-delimited JSON to the Linux machine on port `9100`.
+
+Example:
+
+```json
+{"command":"goto_waypoint","frame_id":"world","waypoint":{"name":"Home","x":0.45,"y":0.0,"z":0.35}}
+```
+
+Health check:
+
+```json
+{"command":"ping"}
+```
+
+The TCP listener responds with one JSON line per request.
+
+If you want to run the listener by itself:
+
+```bash
+cd ~/EricBerg/Chalmers/Kandidatarbete/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch ur10e_unity_bridge tcp_waypoint_listener.launch.py
+```
 
 ## Camera/Perception-driven auto planning (starter)
 Publish a target pose to `/unity/grasp_target` (`geometry_msgs/PoseStamped`) and ROS2 will plan automatically,
