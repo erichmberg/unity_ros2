@@ -124,14 +124,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="2.4 0.08 0.08"/>
+        <box size="4.65 0.08 0.08"/>
       </geometry>
       <material name="ur_dark_gray"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="2.4 0.08 0.08"/>
+        <box size="4.65 0.08 0.08"/>
       </geometry>
     </collision>
   </link>
