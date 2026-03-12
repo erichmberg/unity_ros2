@@ -17,7 +17,7 @@ public class TargetWorkspaceTools : MonoBehaviour
 
     [Header("Workspace bounds (world)")]
     public Vector3 minBounds = new Vector3(-0.75f, 0.10f, 1.62f);
-    public Vector3 maxBounds = new Vector3(0.75f, 0.50f, 2.20f);
+    public Vector3 maxBounds = new Vector3(-0.10f, 0.50f, 2.20f);
 
     public enum UpAxis { Y, Z }
 
@@ -43,6 +43,10 @@ public class TargetWorkspaceTools : MonoBehaviour
     [Header("Lower bound constraint")]
     public bool enforceMinZ = true;
     public float minZWorld = 0.10f;
+
+    [Header("Cell side constraint (Unity world)")]
+    public bool enforceNegativeXSide = true;
+    public float maxXWorld = -0.10f;
 
     [Header("Colors")]
     public Color reachableColor = new Color(0.10f, 0.85f, 0.25f, 1f);
@@ -258,6 +262,9 @@ public class TargetWorkspaceTools : MonoBehaviour
 
         if (enforceMinZ)
             p.z = Mathf.Max(p.z, minZWorld);
+
+        if (enforceNegativeXSide)
+            p.x = Mathf.Min(p.x, maxXWorld);
 
         targetTransform.position = p;
     }
