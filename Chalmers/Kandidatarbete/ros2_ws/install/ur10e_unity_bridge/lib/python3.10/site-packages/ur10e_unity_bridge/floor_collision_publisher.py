@@ -6,65 +6,123 @@ from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
 
 
-class FloorCollisionPublisher(Node):
+class EnvironmentCollisionPublisher(Node):
     def __init__(self):
-        super().__init__('floor_collision_publisher')
+        super().__init__('environment_collision_publisher')
         self.declare_parameter('topic', '/collision_object')
         self.declare_parameter('frame_id', 'world')
-        self.declare_parameter('id', 'floor')
-        self.declare_parameter('size_x', 4.0)
-        self.declare_parameter('size_y', 4.0)
-        self.declare_parameter('size_z', 0.10)
-        self.declare_parameter('z_center', -0.12)
-        self.declare_parameter('repeats', 0)
+
+        # Publish timing
+        self.declare_parameter('repeats', 6)
+        self.declare_parameter('period_s', 0.5)
+
+        # Floor
+        self.declare_parameter('publish_floor', True)
+        self.declare_parameter('floor_id', 'floor')
+        self.declare_parameter('floor_size_x', 5.0)
+        self.declare_parameter('floor_size_y', 5.0)
+        self.declare_parameter('floor_size_z', 0.10)
+        self.declare_parameter('floor_x', 0.0)
+        self.declare_parameter('floor_y', 0.0)
+        self.declare_parameter('floor_z', -0.12)
+
+        # Rail beam (critical so planner does not cut through rail)
+        self.declare_parameter('publish_rail', True)
+        self.declare_parameter('rail_id', 'rail_beam')
+        self.declare_parameter('rail_size_x', 4.65)
+        self.declare_parameter('rail_size_y', 0.08)
+        self.declare_parameter('rail_size_z', 0.08)
+        self.declare_parameter('rail_x', 0.0)
+        self.declare_parameter('rail_y', -0.02)
+        self.declare_parameter('rail_z', 1.6)
+
+        # Optional coarse cell collision approximation (kept off by default)
+        self.declare_parameter('publish_cell_box', False)
+        self.declare_parameter('cell_id', 'rita_cell_box')
+        self.declare_parameter('cell_size_x', 3.0)
+        self.declare_parameter('cell_size_y', 3.0)
+        self.declare_parameter('cell_size_z', 2.2)
+        self.declare_parameter('cell_x', 0.0)
+        self.declare_parameter('cell_y', 0.0)
+        self.declare_parameter('cell_z', 1.1)
 
         topic = self.get_parameter('topic').value
         self.frame_id = self.get_parameter('frame_id').value
-        self.obj_id = self.get_parameter('id').value
-        self.size_x = float(self.get_parameter('size_x').value)
-        self.size_y = float(self.get_parameter('size_y').value)
-        self.size_z = float(self.get_parameter('size_z').value)
-        self.z_center = float(self.get_parameter('z_center').value)
         self.repeats = int(self.get_parameter('repeats').value)
+        self.period_s = float(self.get_parameter('period_s').value)
 
         self.pub = self.create_publisher(CollisionObject, topic, 10)
         self.count = 0
-        self.timer = self.create_timer(0.5, self.publish_once)
-        if self.repeats > 0:
-            self.get_logger().info(f'Publishing floor collision object to {topic} (repeats={self.repeats})')
-        else:
-            self.get_logger().info(f'Publishing floor collision object continuously to {topic}')
+        self.timer = self.create_timer(self.period_s, self.publish_all)
 
-    def publish_once(self):
+        self.get_logger().info(
+            f'Publishing environment collision objects to {topic} '
+            f'(frame={self.frame_id}, repeats={self.repeats})'
+        )
+
+    def _publish_box(self, obj_id: str, sx: float, sy: float, sz: float, x: float, y: float, z: float):
         msg = CollisionObject()
         msg.header.frame_id = self.frame_id
-        msg.id = self.obj_id
+        msg.id = obj_id
         msg.operation = CollisionObject.ADD
 
         primitive = SolidPrimitive()
         primitive.type = SolidPrimitive.BOX
-        primitive.dimensions = [self.size_x, self.size_y, self.size_z]
+        primitive.dimensions = [float(sx), float(sy), float(sz)]
 
         pose = Pose()
-        pose.position.x = 0.0
-        pose.position.y = 0.0
-        pose.position.z = self.z_center
+        pose.position.x = float(x)
+        pose.position.y = float(y)
+        pose.position.z = float(z)
         pose.orientation.w = 1.0
 
         msg.primitives.append(primitive)
         msg.primitive_poses.append(pose)
-
         self.pub.publish(msg)
-        self.count += 1
 
+    def publish_all(self):
+        if bool(self.get_parameter('publish_floor').value):
+            self._publish_box(
+                str(self.get_parameter('floor_id').value),
+                self.get_parameter('floor_size_x').value,
+                self.get_parameter('floor_size_y').value,
+                self.get_parameter('floor_size_z').value,
+                self.get_parameter('floor_x').value,
+                self.get_parameter('floor_y').value,
+                self.get_parameter('floor_z').value,
+            )
+
+        if bool(self.get_parameter('publish_rail').value):
+            self._publish_box(
+                str(self.get_parameter('rail_id').value),
+                self.get_parameter('rail_size_x').value,
+                self.get_parameter('rail_size_y').value,
+                self.get_parameter('rail_size_z').value,
+                self.get_parameter('rail_x').value,
+                self.get_parameter('rail_y').value,
+                self.get_parameter('rail_z').value,
+            )
+
+        if bool(self.get_parameter('publish_cell_box').value):
+            self._publish_box(
+                str(self.get_parameter('cell_id').value),
+                self.get_parameter('cell_size_x').value,
+                self.get_parameter('cell_size_y').value,
+                self.get_parameter('cell_size_z').value,
+                self.get_parameter('cell_x').value,
+                self.get_parameter('cell_y').value,
+                self.get_parameter('cell_z').value,
+            )
+
+        self.count += 1
         if self.repeats > 0 and self.count >= self.repeats:
-            self.get_logger().info('Floor collision object published.')
+            self.get_logger().info('Environment collision objects published.')
             self.timer.cancel()
 
 
 def main():
     rclpy.init()
-    node = FloorCollisionPublisher()
+    node = EnvironmentCollisionPublisher()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
