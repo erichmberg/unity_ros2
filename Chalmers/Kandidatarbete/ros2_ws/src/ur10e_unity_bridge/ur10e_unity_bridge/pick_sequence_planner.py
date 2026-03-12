@@ -36,8 +36,8 @@ class PickSequencePlanner(Node):
         self.declare_parameter('num_planning_attempts', 20)
         self.declare_parameter('max_velocity_scaling_factor', 0.35)
         self.declare_parameter('max_acceleration_scaling_factor', 0.25)
-        self.declare_parameter('position_tolerance', 0.02)
-        self.declare_parameter('orientation_tolerance', 0.12)
+        self.declare_parameter('position_tolerance', 0.03)
+        self.declare_parameter('orientation_tolerance', 0.20)
 
         # Grasp geometry / sequence
         self.declare_parameter('grasp_offset_x', 0.0)

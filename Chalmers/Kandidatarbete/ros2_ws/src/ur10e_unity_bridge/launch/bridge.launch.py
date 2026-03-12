@@ -1,9 +1,19 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    publish_mesh = LaunchConfiguration('publish_mesh')
+
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'publish_mesh',
+            default_value='false',
+            description='Publish heavy Rita cell STL collision mesh into MoveIt planning scene',
+        ),
         Node(
             package='ur10e_unity_bridge',
             executable='display_to_unity',
@@ -32,6 +42,7 @@ def generate_launch_description():
             package='ur10e_unity_bridge',
             executable='mesh_collision_publisher',
             output='screen',
+            condition=IfCondition(publish_mesh),
             parameters=[{
                 'topic': '/collision_object',
                 'frame_id': 'world',

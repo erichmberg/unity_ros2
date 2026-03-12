@@ -33,8 +33,8 @@ class PoseGoalPlanner(Node):
         self.declare_parameter('num_planning_attempts', 10)
         self.declare_parameter('max_velocity_scaling_factor', 0.35)
         self.declare_parameter('max_acceleration_scaling_factor', 0.25)
-        self.declare_parameter('position_tolerance', 0.01)
-        self.declare_parameter('orientation_tolerance', 0.05)
+        self.declare_parameter('position_tolerance', 0.02)
+        self.declare_parameter('orientation_tolerance', 0.12)
 
         self.input_topic = self.get_parameter('input_topic').value
         self.unity_topic = self.get_parameter('unity_topic').value
