@@ -16,7 +16,7 @@ public class TargetWorkspaceTools : MonoBehaviour
     public Renderer targetRenderer;
 
     [Header("Workspace bounds (world)")]
-    public Vector3 minBounds = new Vector3(-0.75f, -0.50f, 1.62f);
+    public Vector3 minBounds = new Vector3(-0.75f, 0.10f, 1.62f);
     public Vector3 maxBounds = new Vector3(0.75f, 0.50f, 2.20f);
 
     public enum UpAxis { Y, Z }
@@ -39,6 +39,10 @@ public class TargetWorkspaceTools : MonoBehaviour
     public bool enforceMinHeightFromRail = true;
     public float minHeightAboveRail = 0.03f;
     public Vector3 railWorldFallback = new Vector3(0f, -0.02f, 1.6f);
+
+    [Header("Side constraint")]
+    public bool enforcePositiveYSide = true;
+    public float minYWorld = 0.10f;
 
     [Header("Colors")]
     public Color reachableColor = new Color(0.10f, 0.85f, 0.25f, 1f);
@@ -251,6 +255,9 @@ public class TargetWorkspaceTools : MonoBehaviour
             else
                 p.y = Mathf.Max(p.y, minUp);
         }
+
+        if (enforcePositiveYSide)
+            p.y = Mathf.Max(p.y, minYWorld);
 
         targetTransform.position = p;
     }
